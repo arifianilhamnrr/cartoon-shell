@@ -8,6 +8,7 @@ import qs.commons
 import qs.components
 
 Item {
+  id: root
   Component.onCompleted: LyricsService.updateFromPlayer()
 
   readonly property bool isPlaying: Players.mprisPlayer?.isPlaying ?? false

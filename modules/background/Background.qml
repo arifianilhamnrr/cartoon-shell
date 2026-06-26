@@ -6,6 +6,7 @@ import Quickshell.Wayland
 import QtMultimedia
 import qs.commons
 import qs.services
+import qs.utils
 
 Variants {
   id: backgroundVariants
@@ -20,41 +21,23 @@ Variants {
     sourceComponent: PanelWindow {
       id: root
 
-      // Internal state management
-      property string transitionType: "fade"
-      property real transitionProgress: 0
-
-      readonly property real edgeSmoothness: Settings.wallpaper.transitionEdgeSmoothness
-      readonly property bool transitioning: transitionAnimation.running
-
-      // Wipe direction: 0=left, 1=right, 2=up, 3=down
-      property real wipeDirection: 0
-
-      // Disc
-      property real discCenterX: 0.5
-      property real discCenterY: 0.5
-
-      // Stripe
-      property real stripesCount: 16
-      property real stripesAngle: 0
-      property var shaders: [
-      "/shaders/qsb/wp_disc.frag.qsb",
-      "/shaders/qsb/wp_stripes.frag.qsb",
-      "/shaders/qsb/wp_fade.frag.qsb",
-      "/shaders/qsb/wp_wipe.frag.qsb"
-      ]
-
-      // Used to debounce wallpaper changes
       property string futureWallpaper: ""
+      property string pendingSource: ""
+      property string nextSource: ""
+      property bool pendingTransitionStart: false
 
-      // Fillmode default is "crop"
-      property real fillMode: WallpaperService.getFillModeUniform()
-      property vector4d fillColor: Qt.vector4d(Settings.wallpaper.fillColor.r, Settings.wallpaper.fillColor.g, Settings.wallpaper.fillColor.b, 1.0)
+      property real transitionProgress: 0
+      readonly property bool transitioning: transitionAnimation.running
+      readonly property bool useTransition: Settings.wallpaper.transitionDuration > 0
 
-      // Video properties from Settings
+      property string currentWallpaperType: "image"
+      property string currentSource: ""
+
       readonly property bool videoMuted: Settings.wallpaper.videoMuted !== undefined ? Settings.wallpaper.videoMuted : true
       readonly property bool videoLoop: Settings.wallpaper.videoLoop !== undefined ? Settings.wallpaper.videoLoop : true
       readonly property real videoPlaybackRate: Settings.wallpaper.videoPlaybackRate !== undefined ? Settings.wallpaper.videoPlaybackRate : 1.0
+
+      readonly property var wallpaperSourceSize: calculateOptimalWallpaperSize(loader.modelData.width, loader.modelData.height)
 
       color: "transparent"
       screen: loader.modelData
@@ -74,27 +57,25 @@ Variants {
         interval: 333
         running: false
         repeat: false
-        onTriggered: {
-          root.changeWallpaper();
-        }
+        onTriggered: root.changeWallpaper()
       }
 
       Component.onCompleted: setWallpaperInitial()
 
       Component.onDestruction: {
-        transitionAnimation.stop();
-        debounceTimer.stop();
-        shaderLoader.active = false;
-        currentWallpaper.source = "";
-        nextWallpaper.source = "";
+        transitionAnimation.stop()
+        debounceTimer.stop()
+        currentImage.source = ""
+        currentVideo.source = ""
+        nextImage.source = ""
       }
 
       Connections {
         target: WallpaperService
         function onWallpaperChanged(screenName, path) {
           if (screenName === loader.modelData.name) {
-            root.futureWallpaper = path;
-            debounceTimer.restart();
+            root.futureWallpaper = path
+            debounceTimer.restart()
           }
         }
       }
@@ -102,48 +83,39 @@ Variants {
       Connections {
         target: CompositorService
         function onDisplayScalesChanged() {
-          root.setWallpaperInitial();
+          root.setWallpaperInitial()
         }
       }
 
-      // Current wallpaper - can be Image or Video
+      Rectangle {
+        anchors.fill: parent
+        color: Settings.wallpaper.fillColor
+        z: 0
+      }
+
       Item {
         id: currentWallpaperContainer
         anchors.fill: parent
-        visible: !root.transitioning || root.transitionProgress === 0
+        z: 1
 
-        // Image for image wallpapers
         Image {
           id: currentImage
           anchors.fill: parent
           fillMode: Image.PreserveAspectCrop
-          smooth: true
-          mipmap: true
-          cache: false
+          smooth: false
+          mipmap: false
+          cache: true
           asynchronous: true
-          sourceSize: root.calculateOptimalWallpaperSize(implicitWidth, implicitHeight)
+          sourceSize: root.wallpaperSourceSize
           visible: root.currentWallpaperType === "image"
-
-          property bool dimensionsCalculated: false
 
           onStatusChanged: {
             if (status === Image.Error) {
-              console.log("Current wallpaper failed to load:", source);
-            } else if (status === Image.Ready && !dimensionsCalculated) {
-              dimensionsCalculated = true;
-              const optimalSize = root.calculateOptimalWallpaperSize(implicitWidth, implicitHeight);
-              if (optimalSize !== false) {
-                sourceSize = optimalSize;
-              }
+              console.log("Current wallpaper failed to load:", source)
             }
-          }
-          onSourceChanged: {
-            dimensionsCalculated = false;
-            sourceSize = undefined;
           }
         }
 
-        // Video for video wallpapers
         Video {
           id: currentVideo
           anchors.fill: parent
@@ -155,132 +127,58 @@ Variants {
           visible: root.currentWallpaperType === "video"
 
           onErrorOccurred: function(error, errorString) {
-            console.error("Video error:", error, errorString);
-            // Fallback to default wallpaper if video fails
+            console.error("Video error:", error, errorString)
             if (WallpaperService && WallpaperService.isInitialized) {
-              const defaultWallpaper = WallpaperService.getWallpaper(loader.modelData.name);
-              if (defaultWallpaper) {
-                root.setWallpaperImmediate(defaultWallpaper);
+              const fallback = WallpaperService.getWallpaper(loader.modelData.name)
+              if (fallback) {
+                root.setWallpaperImmediate(fallback)
               }
             }
           }
 
-          onPlaying: {
-            console.log("Current video started playing:", source);
-          }
-
-          onStopped: {
-            console.log("Current video stopped");
-          }
-
           Component.onDestruction: {
             if (playbackState === MediaPlayer.PlayingState) {
-              stop();
+              stop()
             }
           }
         }
       }
 
-      // Next wallpaper - for transitions
-      Item {
-        id: nextWallpaperContainer
+      // Preloads next wallpaper, then fades in on top (single decode, no shader)
+      Image {
+        id: nextImage
         anchors.fill: parent
-        visible: root.transitioning && root.transitionProgress > 0
+        fillMode: Image.PreserveAspectCrop
+        smooth: false
+        mipmap: false
+        cache: true
+        asynchronous: true
+        sourceSize: root.wallpaperSourceSize
+        z: 2
+        visible: root.transitioning
+        opacity: root.transitionProgress
 
-        // Image for image wallpapers
-        Image {
-          id: nextImage
-          anchors.fill: parent
-          fillMode: Image.PreserveAspectCrop
-          smooth: true
-          mipmap: true
-          cache: false
-          asynchronous: true
-          sourceSize: root.calculateOptimalWallpaperSize(implicitWidth, implicitHeight)
-          visible: root.nextWallpaperType === "image"
-
-          property bool dimensionsCalculated: false
-
-          onStatusChanged: {
-            if (status === Image.Error) {} else if (status === Image.Ready && !dimensionsCalculated) {
-              dimensionsCalculated = true;
-              const optimalSize = root.calculateOptimalWallpaperSize(implicitWidth, implicitHeight);
-              if (optimalSize !== false) {
-                sourceSize = optimalSize;
-              }
-            }
-          }
-          onSourceChanged: {
-            dimensionsCalculated = false;
-            sourceSize = undefined;
-          }
-        }
-
-        // Video for video wallpapers
-        Video {
-          id: nextVideo
-          anchors.fill: parent
-          fillMode: VideoOutput.PreserveAspectCrop
-          muted: root.videoMuted
-          loops: root.videoLoop ? MediaPlayer.Infinite : 1
-          autoPlay: true
-          playbackRate: root.videoPlaybackRate
-          visible: root.nextWallpaperType === "video"
-
-          onErrorOccurred: function(error, errorString) {
-            console.error("Next video error:", error, errorString);
+        onStatusChanged: {
+          if (status !== Image.Ready) {
+            return
           }
 
-          onPlaying: {
-            console.log("Next video started playing:", source);
+          const loaded = root.normalizePath(source)
+          const pending = root.normalizePath(root.pendingSource)
+          if (pending === "" || loaded !== pending) {
+            return
           }
 
-          onStopped: {
-            console.log("Next video stopped");
+          if (root.pendingTransitionStart || root.transitioning) {
+            root.startTransitionAnimation()
+            return
           }
 
-          Component.onDestruction: {
-            if (playbackState === MediaPlayer.PlayingState) {
-              stop();
-            }
+          if (root.useTransition && root.currentSource !== "" && root.currentWallpaperType === "image") {
+            root.startTransitionAnimation()
+          } else {
+            root.commitWallpaper(pending)
           }
-        }
-      }
-
-      // Track current and next wallpaper types
-      property string currentWallpaperType: "image" // "image" or "video"
-      property string nextWallpaperType: "image" // "image" or "video"
-
-      // Track current and next sources
-      property string currentSource: ""
-      property string nextSource: ""
-
-      Loader {
-        id: shaderLoader
-        anchors.fill: parent
-        active: true
-        sourceComponent: ShaderEffect {
-          anchors.fill: parent
-
-          property variant source1: currentWallpaperContainer.children[0]
-          property variant source2: nextWallpaperContainer.children[0]
-          property real progress: root.transitionProgress
-          property real smoothness: root.edgeSmoothness
-          property real aspectRatio: root.width / root.height
-          property real stripeCount: root.stripesCount
-          property real angle: root.stripesAngle
-
-          // Fill mode properties
-          property real fillMode: root.fillMode
-          property vector4d fillColor: root.fillColor
-          property real imageWidth1: currentImage.sourceSize.width
-          property real imageHeight1: currentImage.sourceSize.height
-          property real imageWidth2: nextImage.sourceSize.width
-          property real imageHeight2: nextImage.sourceSize.height
-          property real screenWidth: width
-          property real screenHeight: height
-
-          fragmentShader: Qt.resolvedUrl(Quickshell.shellDir + shaders[Settings.wallpaper.shaders])
         }
       }
 
@@ -290,202 +188,139 @@ Variants {
         property: "transitionProgress"
         from: 0.0
         to: 1.0
-        // The stripes shader feels faster visually, we make it a bit slower here.
         duration: Settings.wallpaper.transitionDuration
-        easing.type: Easing.InOutCubic
+        easing.type: Easing.OutCubic
+
         onFinished: {
-          // Assign new wallpaper to current BEFORE clearing to prevent flicker
-          const tempSource = root.nextSource;
-          const tempType = root.nextWallpaperType;
-
-          // Stop current video if it's playing
-          if (root.currentWallpaperType === "video" && currentVideo.playbackState === MediaPlayer.PlayingState) {
-            currentVideo.stop();
-          }
-
-          // Clear current
-          if (root.currentWallpaperType === "image") {
-            currentImage.source = "";
-          } else {
-            currentVideo.source = "";
-          }
-
-          // Set current to new wallpaper
-          root.currentSource = tempSource;
-          root.currentWallpaperType = tempType;
-
-          if (tempType === "image") {
-            currentImage.source = tempSource;
-          } else {
-            currentVideo.source = tempSource;
-          }
-
-          root.transitionProgress = 0.0;
-
-          // Now clear next wallpaper
-          root.nextSource = "";
-          if (root.nextWallpaperType === "image") {
-            nextImage.source = "";
-            nextImage.sourceSize = undefined;
-          } else {
-            nextVideo.source = "";
-            if (nextVideo.playbackState === MediaPlayer.PlayingState) {
-              nextVideo.stop();
-            }
-          }
-          root.nextWallpaperType = "image";
+          root.commitWallpaper(root.nextSource || root.pendingSource)
         }
+      }
+
+      function normalizePath(path) {
+        if (!path) {
+          return ""
+        }
+        return FileUtils.trimFileProtocol(path.toString())
       }
 
       function setWallpaperInitial() {
-        // On startup, defer assigning wallpaper until the service cache is ready, retries every tick
         if (!WallpaperService || !WallpaperService.isInitialized) {
-          Qt.callLater(setWallpaperInitial);
-          return;
+          Qt.callLater(setWallpaperInitial)
+          return
         }
 
-        setWallpaperImmediate(WallpaperService.getWallpaper(loader.modelData.name));
+        currentImage.asynchronous = false
+        setWallpaperImmediate(WallpaperService.getWallpaper(loader.modelData.name))
+        currentImage.asynchronous = true
       }
 
       function setWallpaperImmediate(source) {
-        transitionAnimation.stop();
-        transitionProgress = 0.0;
+        transitionAnimation.stop()
+        pendingTransitionStart = false
+        transitionProgress = 0.0
+        pendingSource = ""
+        nextSource = ""
+        nextImage.source = ""
 
-        // Clear next wallpaper completely
-        root.nextSource = "";
-        if (root.nextWallpaperType === "image") {
-          nextImage.source = "";
-          nextImage.sourceSize = undefined;
-        } else {
-          nextVideo.source = "";
-          if (nextVideo.playbackState === MediaPlayer.PlayingState) {
-            nextVideo.stop();
-          }
+        const path = normalizePath(source)
+        if (!path) {
+          return
         }
-        root.nextWallpaperType = "image";
 
-        // Set current wallpaper
-        if (source) {
-          root.currentSource = source;
-          const isVideo = isVideoFile(source);
-          root.currentWallpaperType = isVideo ? "video" : "image";
+        commitWallpaper(path)
+      }
 
-          if (isVideo) {
-            currentVideo.source = "file://" + source;
-            currentImage.source = "";
-          } else {
-            currentImage.source = source;
-            currentVideo.source = "";
-            if (currentVideo.playbackState === MediaPlayer.PlayingState) {
-              currentVideo.stop();
-            }
-          }
+      function requestWallpaper(source) {
+        const path = normalizePath(source)
+        if (!path || path === currentSource || transitioning) {
+          return
+        }
+
+        if (isVideoFile(path) || !useTransition || currentWallpaperType !== "image" || currentSource === "") {
+          setWallpaperImmediate(path)
+          return
+        }
+
+        pendingSource = path
+        nextSource = path
+        nextImage.source = path
+      }
+
+      function startTransitionAnimation() {
+        const path = normalizePath(nextSource || pendingSource)
+        if (!useTransition || path === "" || currentSource === "" || currentImage.status !== Image.Ready) {
+          commitWallpaper(path)
+          return
+        }
+
+        if (nextImage.status !== Image.Ready) {
+          pendingTransitionStart = true
+          return
+        }
+
+        pendingTransitionStart = false
+        transitionProgress = 0.0
+        transitionAnimation.start()
+      }
+
+      function commitWallpaper(source) {
+        const path = normalizePath(source)
+        transitionAnimation.stop()
+        pendingTransitionStart = false
+        transitionProgress = 0.0
+        pendingSource = ""
+        nextSource = ""
+
+        if (!path) {
+          nextImage.source = ""
+          return
+        }
+
+        currentSource = path
+        currentWallpaperType = "image"
+        currentImage.asynchronous = false
+        currentImage.source = path
+        currentImage.asynchronous = true
+        nextImage.source = ""
+        currentVideo.source = ""
+        if (currentVideo.playbackState === MediaPlayer.PlayingState) {
+          currentVideo.stop()
         }
       }
 
       function calculateOptimalWallpaperSize(wpWidth, wpHeight) {
-        const compositorScale = CompositorService.getDisplayScale(loader.modelData.name);
-        const screenWidth = loader.modelData.width * compositorScale;
-        const screenHeight = loader.modelData.height * compositorScale;
+        const compositorScale = CompositorService.getDisplayScale(loader.modelData.name)
+        const screenWidth = loader.modelData.width * compositorScale
+        const screenHeight = loader.modelData.height * compositorScale
 
         if (wpWidth <= screenWidth || wpHeight <= screenHeight || wpWidth <= 0 || wpHeight <= 0) {
-          return;
+          return
         }
 
-        const imageAspectRatio = wpWidth / wpHeight;
-        var dim = Qt.size(0, 0);
+        const imageAspectRatio = wpWidth / wpHeight
+        var dim = Qt.size(0, 0)
         if (screenWidth >= screenHeight) {
-          const w = Math.min(screenWidth, wpWidth);
-          dim = Qt.size(w, w / imageAspectRatio);
+          const w = Math.min(screenWidth, wpWidth)
+          dim = Qt.size(w, w / imageAspectRatio)
         } else {
-          const h = Math.min(screenHeight, wpHeight);
-          dim = Qt.size(h * imageAspectRatio, h);
+          const h = Math.min(screenHeight, wpHeight)
+          dim = Qt.size(h * imageAspectRatio, h)
         }
 
-        return dim;
-      }
-
-      function setWallpaperWithTransition(source) {
-        if (!source || source === root.currentSource) {
-          return;
-        }
-
-        // Determine file type
-        const isVideo = isVideoFile(source);
-        const newType = isVideo ? "video" : "image";
-
-        if (transitioning) {
-          // If already transitioning, complete current transition first
-          transitionAnimation.stop();
-          transitionProgress = 0;
-
-          // Set current to whatever was in next
-          root.currentSource = root.nextSource;
-          root.currentWallpaperType = root.nextWallpaperType;
-
-          if (root.currentWallpaperType === "image") {
-            currentImage.source = root.currentSource;
-            currentVideo.source = "";
-            if (currentVideo.playbackState === MediaPlayer.PlayingState) {
-              currentVideo.stop();
-            }
-          } else {
-            currentVideo.source = root.currentSource;
-            currentImage.source = "";
-          }
-
-          // Now set next to new source
-          root.nextSource = source;
-          root.nextWallpaperType = newType;
-
-          if (newType === "image") {
-            nextImage.source = source;
-            nextVideo.source = "";
-            if (nextVideo.playbackState === MediaPlayer.PlayingState) {
-              nextVideo.stop();
-            }
-          } else {
-            nextVideo.source = source;
-            nextImage.source = "";
-          }
-
-          currentImage.asynchronous = false;
-          transitionAnimation.start();
-          return;
-        }
-
-        // Set next wallpaper
-        root.nextSource = source;
-        root.nextWallpaperType = newType;
-
-        if (newType === "image") {
-          nextImage.source = source;
-          nextVideo.source = "";
-          if (nextVideo.playbackState === MediaPlayer.PlayingState) {
-            nextVideo.stop();
-          }
-        } else {
-          nextVideo.source = source;
-          nextImage.source = "";
-        }
-
-        currentImage.asynchronous = false;
-        transitionAnimation.start();
+        return dim
       }
 
       function changeWallpaper() {
-        stripesCount = Math.round(Math.random() * 20 + 4);
-        stripesAngle = Math.random() * 360;
-        setWallpaperWithTransition(futureWallpaper);
-        futureWallpaper = "";
+        requestWallpaper(futureWallpaper)
+        futureWallpaper = ""
       }
 
       function isVideoFile(source) {
-        if (!source) return false;
-        const videoExtensions = ["mp4", "webm", "mkv", "avi", "mov", "flv", "wmv", "m4v", "mpg", "mpeg"];
-        const sourceStr = source.toString();
-        const extension = sourceStr.split('.').pop().toLowerCase();
-        return videoExtensions.includes(extension);
+        if (!source) return false
+        const videoExtensions = ["mp4", "webm", "mkv", "avi", "mov", "flv", "wmv", "m4v", "mpg", "mpeg"]
+        const sourceStr = source.toString()
+        const extension = sourceStr.split('.').pop().toLowerCase()
+        return videoExtensions.includes(extension)
       }
     }
   }

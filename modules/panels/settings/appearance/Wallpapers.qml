@@ -34,7 +34,7 @@ Item {
       onRunningChanged: {
         if (!running) {
           currentWallpaper = normalizePath(wallpaperPath);
-          showNotification(lang?.wallpapers?.success_set || "Đã đặt hình nền thành công!");
+          showNotification(lang?.wallpapers?.success_set || "Wallpaper set successfully!");
         }
       }
     }
@@ -50,7 +50,7 @@ Item {
 
       onRunningChanged: {
         if (!running) {
-          showNotification(lang?.wallpapers?.success_delete || "Đã xóa ảnh thành công!");
+          showNotification(lang?.wallpapers?.success_delete || "Image deleted successfully!");
         }
       }
     }
@@ -95,7 +95,7 @@ Item {
           spacing: ScalerService.s(10)
 
           Text {
-            text: lang?.wallpapers?.title || "Quản lý hình ảnh"
+            text: lang?.wallpapers?.title || "Image Management"
             color: theme.primary.foreground
             font.pixelSize: ScalerService.s(24)
             font.bold: true
@@ -163,7 +163,7 @@ Item {
               spacing: ScalerService.s(8)
 
               Text {
-                text: lang?.wallpapers?.total_images || "Tổng số ảnh:"
+                text: lang?.wallpapers?.total_images || "Total images:"
                 font.family: "ComicShannsMono Nerd Font"
                 color: theme.primary.dim_foreground
                 font.pixelSize: ScalerService.s(15)
@@ -184,7 +184,7 @@ Item {
               }
 
               Text {
-                text: homePath ? (lang?.wallpapers?.path || "Đường dẫn:") + " ~/Pictures/Wallpapers/" : (lang?.wallpapers?.loading || "Đang tải...")
+                text: homePath ? (lang?.wallpapers?.path || "Path:") + " ~/Pictures/Wallpapers/" : (lang?.wallpapers?.loading || "Loading...")
                 font.family: "ComicShannsMono Nerd Font"
                 color: theme.primary.dim_foreground
                 font.pixelSize: ScalerService.s(15)
@@ -200,7 +200,7 @@ Item {
           spacing: ScalerService.s(10)
 
           Text {
-            text: lang?.wallpapers?.wallpapers_label || "Hình nền:"
+            text: lang?.wallpapers?.wallpapers_label || "Wallpaper:"
             color: theme.primary.foreground
             font {
               family: "ComicShannsMono Nerd Font"
@@ -211,7 +211,7 @@ Item {
           // Status indicator
           Text {
             visible: folderModel.status === FolderListModel.Loading
-            text: lang?.wallpapers?.loading || "Đang tải..."
+            text: lang?.wallpapers?.loading || "Loading..."
             color: theme.primary.dim_foreground
             font.pixelSize: ScalerService.s(14)
             Layout.alignment: Qt.AlignCenter
@@ -356,7 +356,7 @@ Item {
 
                         Text {
                           anchors.centerIn: parent
-                          text: normalizePath(fileUrl) === systemSettings.currentWallpaper ? (lang?.wallpapers?.already_set || "Đã đặt") : (lang?.wallpapers?.set_wallpaper || "Đặt nền")
+                          text: normalizePath(fileUrl) === systemSettings.currentWallpaper ? (lang?.wallpapers?.already_set || "Applied") : (lang?.wallpapers?.set_wallpaper || "Set")
                           color: theme.primary.background
                           font.pixelSize: ScalerService.s(10)
                           font.bold: true
@@ -381,7 +381,7 @@ Item {
 
                         Text {
                           anchors.centerIn: parent
-                          text: lang?.wallpapers?.delete || "Xóa"
+                          text: lang?.wallpapers?.delete || "Delete"
                           color: theme.primary.background
                           font.pixelSize: ScalerService.s(10)
                           font.bold: true
@@ -403,7 +403,7 @@ Item {
           // No images message
           Text {
             visible: folderModel.count === 0 && homePath && folderModel.status === FolderListModel.Ready
-            text: lang?.wallpapers?.no_images || "Không tìm thấy ảnh nào trong thư mục ~/Pictures/Wallpapers"
+            text: lang?.wallpapers?.no_images || "No images found in ~/Pictures/Wallpapers folder"
             color: theme.primary.dim_foreground
             font.pixelSize: ScalerService.s(14)
             Layout.alignment: Qt.AlignCenter
@@ -412,7 +412,7 @@ Item {
           // Loading message
           Text {
             visible: !homePath
-            text: lang?.wallpapers?.loading_info || "Đang tải thông tin..."
+            text: lang?.wallpapers?.loading_info || "Loading information..."
             color: theme.primary.dim_foreground
             font.pixelSize: ScalerService.s(14)
             Layout.alignment: Qt.AlignCenter
@@ -447,7 +447,7 @@ Item {
         spacing: ScalerService.s(15)
 
         Text {
-          text: (lang?.wallpapers?.delete_confirm || "Xác nhận xóa") + "\n" + deleteDialog.fileNameToDelete
+          text: (lang?.wallpapers?.delete_confirm || "Confirm delete") + "\n" + deleteDialog.fileNameToDelete
           color: theme.normal.red
           font.pixelSize: ScalerService.s(16)
           font.bold: true
@@ -468,7 +468,7 @@ Item {
 
             Text {
               anchors.centerIn: parent
-              text: lang?.wallpapers?.cancel || "Hủy"
+              text: lang?.wallpapers?.cancel || "Cancel"
               color: theme.primary.foreground
               font.pixelSize: ScalerService.s(14)
             }
@@ -488,7 +488,7 @@ Item {
 
             Text {
               anchors.centerIn: parent
-              text: lang?.wallpapers?.delete || "Xóa"
+              text: lang?.wallpapers?.delete || "Delete"
               color: theme.primary.background
               font.pixelSize: ScalerService.s(14)
             }
@@ -546,7 +546,6 @@ Item {
     // ===== TẤT CẢ CÁC HÀM ĐƯỢC ĐẶT Ở ĐÂY =====
 
     function setWallpaper(filePath) {
-      Settings.wallpaper.shaders = Math.floor(Math.random() * 4)
       var cleanPath = normalizePath(filePath);
 
       if (Settings.wallpaper.setWallpaperOnAllMonitors) {
@@ -562,7 +561,7 @@ Item {
         }
       }
 
-      showNotification(lang?.wallpapers?.success_set || "Đã đặt hình nền thành công!");
+      showNotification(lang?.wallpapers?.success_set || "Wallpaper set successfully!");
       systemSettings.currentWallpaper = cleanPath;  // Lưu đường dẫn đã chuẩn hóa
     }
 

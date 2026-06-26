@@ -8,6 +8,8 @@ import qs.services
 Item {
   id: root
 
+  property var onConfirmRequested: null
+
   Loader {
     source: "../modules/panels/package/PackagePanel.qml"
     active: VisibleService.packagePanel
@@ -99,12 +101,29 @@ Item {
     }
   }
   Loader {
+    id: wifiPanelLoader
+    active: true
     source: "../modules/panels/wifi/WifiPanel.qml"
-    active: VisibleService.wifi
     onLoaded: {
       item.visible = Qt.binding(function () {
           return VisibleService.wifi;
       });
+    }
+  }
+
+  Connections {
+    target: VisibleService
+    function onWifiChanged() {
+      if (!VisibleService.wifi || !wifiPanelLoader.item)
+        return;
+
+      const manager = wifiPanelLoader.item.wifiManager;
+      if (!manager || !manager.wifiEnabled)
+        return;
+
+      manager.checkConnectedWifi();
+      manager.refreshConnectionDetails();
+      manager.scanWifiNetworks(false, true);
     }
   }
 
@@ -152,8 +171,20 @@ Item {
     active: VisibleService.launcher
     onLoaded: {
       item.visible = VisibleService.launcher;
+    }
+  }
+
+  Loader {
+    id: sessionMenuLoader
+    source: "../modules/panels/session/SessionMenuPanel.qml"
+    active: VisibleService.session
+    onLoaded: {
+      item.visible = Qt.binding(function () {
+        return VisibleService.session;
+      });
       item.confirmRequested.connect(function (action, actionLabel) {
-          confirmDialog.show(action, actionLabel);
+        if (root.onConfirmRequested)
+          root.onConfirmRequested(action, actionLabel);
       });
     }
   }
@@ -222,6 +253,23 @@ Item {
     target: "keybind"
     function getToggle() {
       VisibleService.togglePanel("keybind")
+    }
+  }
+  IpcHandler {
+    target: "session"
+    function getToggle() {
+      VisibleService.togglePanel("session")
+    }
+  }
+  IpcHandler {
+    target: "wallpaper"
+
+    function next() {
+      return WallpaperService.cycleWallpaper(undefined, false);
+    }
+
+    function random() {
+      return WallpaperService.cycleWallpaper(undefined, true);
     }
   }
 }

@@ -5,11 +5,15 @@ import QtQuick.Shapes
 import Quickshell.Io
 import Quickshell
 import qs.services
+import qs.commons
+import "./" as BatteryComponents
 
 Item {
   id: root
-  width: ScalerService.s(320)
-  height: ScalerService.s(400)
+  width: ScalerService.s(340)
+  height: ScalerService.s(580)
+
+  property var lang: LanguageService.translations
 
   // Catppuccin Mocha color scheme
   property color batteryHighColor: theme.normal.green       // "#a6da95"
@@ -149,7 +153,7 @@ Item {
       Layout.fillWidth: true
 
       Text {
-        text: "🔋 Battery Monitor"
+        text: lang?.battery_power?.monitor_title || "Battery Monitor"
         font.family: "ComicShannsMono Nerd Font"
         color: textColor
         font.bold: true
@@ -318,6 +322,10 @@ Item {
           }
         }
       }
+    }
+
+    BatteryComponents.BatteryPowerControls {
+      Layout.fillWidth: true
     }
 
     // Battery Details Section

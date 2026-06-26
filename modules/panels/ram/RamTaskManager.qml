@@ -69,15 +69,9 @@ Item {
           anchors.margins: ScalerService.s(12)
 
           CustomText {
-            name: lang.ram.title
+            name: lang?.ram?.title || "RAM Manager"
             size: "large"
             isBold: true
-            opacity: root.animationProgress > 0.85 ? 1 : 0
-            Behavior on opacity {
-              NumberAnimation {
-                duration: 200
-              }
-            }
           }
 
           Item {
@@ -87,25 +81,13 @@ Item {
           ColumnLayout {
             spacing: ScalerService.s(2)
             CustomText {
-              name: lang.ram.header_bar.last_update
+              name: lang?.ram?.header_bar?.last_update || "Last update"
               size: "small"
-              opacity: root.animationProgress > 0.9 ? 1 : 0
-              Behavior on opacity {
-                NumberAnimation {
-                  duration: 200
-                }
-              }
             }
             CustomText {
               name: lastUpdateTime
               size: "small"
               isBold: true
-              opacity: root.animationProgress > 0.95 ? 1 : 0
-              Behavior on opacity {
-                NumberAnimation {
-                  duration: 200
-                }
-              }
             }
           }
         }
@@ -116,12 +98,6 @@ Item {
         height: ScalerService.s(32)
         color: Qt.alpha(theme.button.background, 0.5)
 
-        opacity: root.animationProgress > 0.5 ? 1 : 0
-        Behavior on opacity {
-          NumberAnimation {
-            duration: 200
-          }
-        }
         radius: ScalerService.s(6)
 
         RowLayout {
@@ -130,58 +106,34 @@ Item {
           spacing: ScalerService.s(8)
 
           CustomText {
-            name: lang.ram.headers.pid
+            name: lang?.ram?.headers?.pid || "PID"
             size: "small"
             isBold: true
             textColor: theme.button.text
             Layout.preferredWidth: ScalerService.s(70)
-            opacity: root.animationProgress > 1 ? 1 : 0
-            Behavior on opacity {
-              NumberAnimation {
-                duration: 200
-              }
-            }
           }
           CustomText {
-            name: lang.ram.headers.name
+            name: lang?.ram?.headers?.name || "Name"
             size: "small"
             isBold: true
             textColor: theme.button.text
             Layout.fillWidth: true
-            opacity: root.animationProgress > 1.05 ? 1 : 0
-            Behavior on opacity {
-              NumberAnimation {
-                duration: 200
-              }
-            }
           }
           CustomText {
-            name: lang.ram.headers.ram_percent
+            name: lang?.ram?.headers?.ram_percent || "RAM %"
             size: "small"
             isBold: true
             textColor: theme.button.text
             Layout.preferredWidth: ScalerService.s(80)
             horizontalAlignment: Text.AlignRight
-            opacity: root.animationProgress > 1.1 ? 1 : 0
-            Behavior on opacity {
-              NumberAnimation {
-                duration: 200
-              }
-            }
           }
           CustomText {
-            name: lang.ram.headers.memory
+            name: lang?.ram?.headers?.memory || "Memory"
             size: "small"
             isBold: true
             textColor: theme.button.text
             Layout.preferredWidth: ScalerService.s(100)
             horizontalAlignment: Text.AlignRight
-            opacity: root.animationProgress > 1.15 ? 1 : 0
-            Behavior on opacity {
-              NumberAnimation {
-                duration: 200
-              }
-            }
           }
         }
       }
@@ -190,6 +142,14 @@ Item {
         id: processFlick
         Layout.fillWidth: true
         Layout.fillHeight: true
+        opacity: root.animationProgress > 0.3 ? 1 : 0
+
+        Behavior on opacity {
+          NumberAnimation {
+            duration: 200
+            easing.type: Easing.OutCubic
+          }
+        }
 
         clip: true
         contentWidth: width
@@ -227,21 +187,6 @@ Item {
                   size: "small"
                   textColor: theme.button.text
                   Layout.preferredWidth: ScalerService.s(70)
-                  opacity: root.animationProgress > 1.5 ? 1 : 0
-
-                  SequentialAnimation on opacity {
-                    running: root.animationProgress > 1.2
-
-                    PauseAnimation {
-                      duration: index * 15
-                    }
-
-                    NumberAnimation {
-                      to: 1
-                      duration: 200
-                      easing.type: Easing.OutCubic
-                    }
-                  }
                 }
 
                 CustomText {
@@ -249,21 +194,6 @@ Item {
                   size: "small"
                   textColor: theme.primary.foreground
                   Layout.fillWidth: true
-                  opacity: root.animationProgress > 1.5 ? 1 : 0
-
-                  SequentialAnimation on opacity {
-                    running: root.animationProgress > 1.25
-
-                    PauseAnimation {
-                      duration: index * 15
-                    }
-
-                    NumberAnimation {
-                      to: 1
-                      duration: 200
-                      easing.type: Easing.OutCubic
-                    }
-                  }
                 }
 
                 CustomText {
@@ -272,21 +202,6 @@ Item {
                   textColor: getPercentageColor(modelData.percent)
                   Layout.preferredWidth: ScalerService.s(80)
                   horizontalAlignment: Text.AlignRight
-                  opacity: root.animationProgress > 1.5 ? 1 : 0
-
-                  SequentialAnimation on opacity {
-                    running: root.animationProgress > 1.3
-
-                    PauseAnimation {
-                      duration: index * 15
-                    }
-
-                    NumberAnimation {
-                      to: 1
-                      duration: 200
-                      easing.type: Easing.OutCubic
-                    }
-                  }
                 }
 
                 CustomText {
@@ -295,21 +210,6 @@ Item {
                   textColor: theme.primary.foreground
                   Layout.preferredWidth: ScalerService.s(100)
                   horizontalAlignment: Text.AlignRight
-                  opacity: root.animationProgress > 1.5 ? 1 : 0
-
-                  SequentialAnimation on opacity {
-                    running: root.animationProgress > 1.35
-
-                    PauseAnimation {
-                      duration: index * 15
-                    }
-
-                    NumberAnimation {
-                      to: 1
-                      duration: 200
-                      easing.type: Easing.OutCubic
-                    }
-                  }
                 }
               }
 
@@ -326,17 +226,14 @@ Item {
                 color: theme.primary.dim_background
 
                 Rectangle {
-                  width: root.animationProgress > 1.5
-                  ? parent.width * Math.min(modelData.percent / 30, 1)
-                  : 0
-
+                  width: parent.width * Math.min(modelData.percent / 30, 1)
                   height: parent.height
                   radius: ScalerService.s(1.5)
                   color: getPercentageColor(modelData.percent)
 
                   Behavior on width {
                     NumberAnimation {
-                      duration: 500
+                      duration: 250
                       easing.type: Easing.OutCubic
                     }
                   }
@@ -356,13 +253,6 @@ Item {
         height: ScalerService.s(60)
         color: theme.button.background
         radius: ScalerService.s(8)
-        opacity: root.animationProgress > 0.6 ? 1 : 0
-        Behavior on opacity {
-          NumberAnimation {
-            duration: 200
-          }
-        }
-
         RowLayout {
           anchors.fill: parent
           anchors.margins: ScalerService.s(10)
@@ -370,13 +260,7 @@ Item {
           ColumnLayout {
             spacing: ScalerService.s(2)
             CustomText {
-              opacity: root.animationProgress > 1.55 ? 1 : 0
-              Behavior on opacity {
-                NumberAnimation {
-                  duration: 200
-                }
-              }
-              name: lang.ram.footer.process_count_label
+              name: lang?.ram?.footer?.process_count_label || "Processes"
               size: "small"
               textColor: theme.primary.dim_foreground
             }
@@ -385,12 +269,6 @@ Item {
               size: "small"
               textColor: theme.button.text
               isBold: true
-              opacity: root.animationProgress > 1.6 ? 1 : 0
-              Behavior on opacity {
-                NumberAnimation {
-                  duration: 200
-                }
-              }
             }
           }
 
@@ -401,27 +279,15 @@ Item {
           ColumnLayout {
             spacing: ScalerService.s(2)
             CustomText {
-              name: lang.ram.footer.total_ram_label
+              name: lang?.ram?.footer?.total_ram_label || "Total RAM"
               size: "small"
               textColor: theme.primary.dim_foreground
-              opacity: root.animationProgress > 1.65 ? 1 : 0
-              Behavior on opacity {
-                NumberAnimation {
-                  duration: 200
-                }
-              }
             }
             CustomText {
               name: calculateTotalRAM().toFixed(1) + " MB"
               size: "small"
               textColor: theme.button.text
               isBold: true
-              opacity: root.animationProgress > 1.7 ? 1 : 0
-              Behavior on opacity {
-                NumberAnimation {
-                  duration: 200
-                }
-              }
             }
           }
 
@@ -432,26 +298,14 @@ Item {
           ColumnLayout {
             spacing: ScalerService.s(2)
             CustomText {
-              name: lang.ram.footer.memory_distribution_label
+              name: lang?.ram?.footer?.memory_distribution_label || "Top consumer"
               size: "small"
               textColor: theme.primary.dim_foreground
-              opacity: root.animationProgress > 1.75 ? 1 : 0
-              Behavior on opacity {
-                NumberAnimation {
-                  duration: 200
-                }
-              }
             }
             CustomText {
               name: getMemoryDistribution()
               size: "small"
               textColor: theme.button.text
-              opacity: root.animationProgress > 1.8 ? 1 : 0
-              Behavior on opacity {
-                NumberAnimation {
-                  duration: 200
-                }
-              }
               isBold: true
             }
           }
@@ -487,5 +341,10 @@ Item {
     return topProcess.name.split('/').pop() + " (" + topPercentage + "%)";
   }
 
-  Component.onCompleted: processFetcher.running = true
+  Timer {
+    id: startupTimer
+    interval: 150
+    running: true
+    onTriggered: processFetcher.running = true
+  }
 }

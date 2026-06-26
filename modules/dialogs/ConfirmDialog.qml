@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import qs.services
 import qs.commons
 
@@ -29,6 +30,9 @@ PanelWindow {
   exclusiveZone: 0
   visible: false
   color: "transparent"
+  WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+
+  property bool yesSelected: false
 
   Process {
     id: sleepProcess
@@ -37,7 +41,7 @@ PanelWindow {
     id: lockProcess
   }
   Process {
-    id: logoutProcess
+    id: hibernateProcess
   }
   Process {
     id: restartProcess
@@ -49,7 +53,11 @@ PanelWindow {
   function show(action, actionLabel) {
     pendingAction = action;
     pendingActionLabel = actionLabel;
+    yesSelected = false;
     visible = true;
+    Qt.callLater(function () {
+      keyboardCapture.forceActiveFocus();
+    });
   }
 
   function hide() {
@@ -80,9 +88,13 @@ PanelWindow {
       ]
       lockProcess.startDetached();
       break;
-      case "logout":
-      logoutProcess.command = ["hyprctl", "dispatch", "exit"];
-      logoutProcess.startDetached();
+      case "hibernate":
+      hibernateProcess.command = [
+      "sh",
+      "-c",
+      "systemctl hibernate || loginctl hibernate"
+      ];
+      hibernateProcess.startDetached();
       break;
       case "restart":
       restartProcess.command = ["systemctl", "reboot"];
@@ -109,7 +121,7 @@ PanelWindow {
       spacing: ScalerService.s(20)
 
       Text {
-        text: lang?.confirm?.title || "Xác nhận"
+        text: lang?.confirm?.title || "Confirm"
         color: theme.primary.foreground
         font.pixelSize: ScalerService.s(24)
         font.bold: true
@@ -118,7 +130,7 @@ PanelWindow {
       }
 
       Text {
-        text: (lang?.confirm?.message || "Bạn có chắc chắn muốn {action}?").replace("{action}", pendingActionLabel)
+        text: (lang?.confirm?.message || "Are you sure you want to {action}?").replace("{action}", pendingActionLabel)
         color: theme.primary.foreground
         font.pixelSize: ScalerService.s(16)
         font.family: "ComicShannsMono Nerd Font"
@@ -132,16 +144,18 @@ PanelWindow {
         spacing: ScalerService.s(30)
 
         Rectangle {
+          id: noButton
           width: ScalerService.s(110)
           height: ScalerService.s(45)
           radius: ScalerService.s(10)
-          color: mouseAreaNo.containsMouse ? theme.button.background_select : theme.button.background
-          border.color: theme.button.border
+          readonly property bool highlighted: mouseAreaNo.containsMouse || (!root.yesSelected && !mouseAreaYes.containsMouse)
+          color: highlighted ? theme.button.background_select : theme.button.background
+          border.color: highlighted ? theme.button.border_select : theme.button.border
           border.width: ScalerService.s(2)
 
           Text {
             anchors.centerIn: parent
-            text: lang?.confirm?.no || "Không"
+            text: lang?.confirm?.no || "No"
             color: theme.primary.foreground
             font.pixelSize: ScalerService.s(18)
             font.family: "ComicShannsMono Nerd Font"
@@ -153,21 +167,27 @@ PanelWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: hide()
+            onContainsMouseChanged: {
+              if (containsMouse)
+                root.yesSelected = false;
+            }
           }
         }
 
         Rectangle {
+          id: yesButton
           width: ScalerService.s(110)
           height: ScalerService.s(45)
           radius: ScalerService.s(10)
-          color: mouseAreaYes.containsMouse ? theme.normal.red : theme.button.background
+          readonly property bool highlighted: mouseAreaYes.containsMouse || (root.yesSelected && !mouseAreaNo.containsMouse)
+          color: highlighted ? theme.normal.red : theme.button.background
           border.color: theme.normal.red
           border.width: ScalerService.s(2)
 
           Text {
             anchors.centerIn: parent
-            text: lang?.confirm?.yes || "Có"
-            color: mouseAreaYes.containsMouse ? "white" : theme.primary.foreground
+            text: lang?.confirm?.yes || "Yes"
+            color: parent.highlighted ? "white" : theme.primary.foreground
             font.pixelSize: ScalerService.s(18)
             font.family: "ComicShannsMono Nerd Font"
             font.bold: true
@@ -179,8 +199,53 @@ PanelWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: executeAction()
+            onContainsMouseChanged: {
+              if (containsMouse)
+                root.yesSelected = true;
+            }
           }
         }
+      }
+    }
+  }
+
+  Item {
+    id: keyboardCapture
+    z: -1
+    anchors.fill: parent
+    focus: root.visible
+
+    Keys.onPressed: function (event) {
+      if (event.key === Qt.Key_Escape) {
+        hide();
+        event.accepted = true;
+        return;
+      }
+
+      if (event.key === Qt.Key_Left || event.key === Qt.Key_Right || event.key === Qt.Key_Tab) {
+        yesSelected = !yesSelected;
+        event.accepted = true;
+        return;
+      }
+
+      if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+        if (yesSelected)
+          executeAction();
+        else
+          hide();
+        event.accepted = true;
+        return;
+      }
+
+      if (event.key === Qt.Key_Y) {
+        executeAction();
+        event.accepted = true;
+        return;
+      }
+
+      if (event.key === Qt.Key_N) {
+        hide();
+        event.accepted = true;
       }
     }
   }

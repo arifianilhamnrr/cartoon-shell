@@ -53,16 +53,14 @@ PanelWindow {
         }
       }
       anchors.fill: parent
+      spacing: ScalerService.s(6)
+
       Item {
         Layout.preferredWidth: ScalerService.s(60)
         Layout.fillHeight: true
         LauncherSection {
           animationProgress: horizontal.animationProgress
         }
-      }
-
-      Item {
-        Layout.fillWidth: true
       }
 
       Item {
@@ -75,17 +73,11 @@ PanelWindow {
 
       Item {
         Layout.fillWidth: true
-      }
-      Item {
-        Layout.preferredWidth: ScalerService.s(340)
         Layout.fillHeight: true
+        Layout.minimumWidth: ScalerService.s(180)
         MediaSection {
           animationProgress: horizontal.animationProgress
         }
-      }
-
-      Item {
-        Layout.fillWidth: true
       }
 
       Item {
@@ -95,27 +87,38 @@ PanelWindow {
           animationProgress: horizontal.animationProgress
         }
       }
+
       Item {
-        Layout.fillWidth: true
-      }
-      Item {
-        Layout.preferredWidth: ScalerService.s(200)
+        Layout.preferredWidth: (Settings.bar.cpu.active || Settings.bar.ram.active) ? ScalerService.s(200) : 0
         Layout.fillHeight: true
+        visible: Settings.bar.cpu.active || Settings.bar.ram.active
         SystemStatsSection {
           animationProgress: horizontal.animationProgress
         }
       }
 
       Item {
-        Layout.fillWidth: true
-      }
-      Item {
-        Layout.preferredWidth: ScalerService.s(430)
         Layout.fillHeight: true
-        StatusTraySection {
-          animationProgress: horizontal.animationProgress
-        }
+        Layout.preferredWidth: statusTrayHost.implicitWidth
+        Layout.minimumWidth: statusTrayHost.implicitWidth
+        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 
+        Item {
+          id: statusTrayHost
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          height: parent.height
+          implicitWidth: statusTray.implicitWidth
+
+          StatusTraySection {
+            id: statusTray
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            height: parent.height
+            width: implicitWidth
+            animationProgress: horizontal.animationProgress
+          }
+        }
       }
 
     }
@@ -138,13 +141,12 @@ PanelWindow {
         }
       }
       anchors.fill: parent
+      spacing: ScalerService.s(6)
 
-      // Top spacer
       Item {
         Layout.fillHeight: true
       }
 
-      // LauncherSection (top section)
       Item {
         Layout.preferredHeight: ScalerService.s(40)
         Layout.fillWidth: true
@@ -153,12 +155,6 @@ PanelWindow {
         }
       }
 
-      // Spacer
-      Item {
-        Layout.fillHeight: true
-      }
-
-      // WorkspaceSection
       Item {
         Layout.preferredHeight: ScalerService.s(280)
         Layout.fillWidth: true
@@ -167,26 +163,15 @@ PanelWindow {
         }
       }
 
-      // Spacer
       Item {
         Layout.fillHeight: true
-      }
-
-      // MediaSection
-      Item {
-        Layout.preferredHeight: ScalerService.s(180)
         Layout.fillWidth: true
+        Layout.minimumHeight: ScalerService.s(120)
         MediaSection {
           animationProgress: vertical.animationProgress
         }
       }
 
-      // Spacer
-      Item {
-        Layout.fillHeight: true
-      }
-
-      // InfoSection
       Item {
         Layout.preferredHeight: ScalerService.s(180)
         Layout.fillWidth: true
@@ -195,26 +180,15 @@ PanelWindow {
         }
       }
 
-      // Spacer
       Item {
-        Layout.fillHeight: true
-      }
-
-      // SystemStatsSection
-      Item {
-        Layout.preferredHeight: ScalerService.s(100)
+        Layout.preferredHeight: (Settings.bar.cpu.active || Settings.bar.ram.active) ? ScalerService.s(100) : 0
         Layout.fillWidth: true
+        visible: Settings.bar.cpu.active || Settings.bar.ram.active
         SystemStatsSection {
           animationProgress: vertical.animationProgress
         }
       }
 
-      // Spacer
-      Item {
-        Layout.fillHeight: true
-      }
-
-      // StatusTraySection (bottom section)
       Item {
         Layout.preferredHeight: ScalerService.s(230)
         Layout.fillWidth: true
@@ -223,7 +197,6 @@ PanelWindow {
         }
       }
 
-      // Bottom spacer
       Item {
         Layout.fillHeight: true
       }

@@ -26,7 +26,7 @@ Item {
     radius: ScalerService.s(Settings.appearance.radius2)
     border.width: Settings.appearance.enableBorder ? ScalerService.s(2) : 0
     border.color: theme.button.border
-    opacity: root.animationProgress > 0.2 ? 0.5 : 0
+    opacity: root.animationProgress > 0.1 ? 0.5 : 0
     Behavior on opacity {
       NumberAnimation {
         duration: 200
@@ -39,26 +39,11 @@ Item {
       opacity: 0.1
       radius: ScalerService.s(12)
 
-      Canvas {
+      Rectangle {
         anchors.fill: parent
-        onPaint: {
-          var ctx = getContext("2d");
-          ctx.strokeStyle = theme.primary.foreground;
-          ctx.lineWidth = 0.5;
-
-          for (var x = 0; x < width; x += ScalerService.s(15)) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
-            ctx.stroke();
-          }
-          for (var y = 0; y < height; y += ScalerService.s(15)) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.stroke();
-          }
-        }
+        color: "transparent"
+        border.color: Qt.alpha(theme.primary.foreground, 0.08)
+        border.width: ScalerService.s(1)
       }
     }
   }

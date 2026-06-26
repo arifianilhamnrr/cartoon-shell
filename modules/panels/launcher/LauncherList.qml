@@ -69,9 +69,25 @@ Rectangle {
         width: ListView.view.width
         height: ScalerService.s(56)
         radius: ScalerService.s(Settings.appearance.radius3)
-        color: (ListView.isCurrentItem || mouseArea.containsMouse) ? theme.button.background_select : "transparent"
-        border.color: (ListView.isCurrentItem || mouseArea.containsMouse) ? theme.button.border_select : "transparent"
-        border.width: Settings.appearance.enableBorder ? ScalerService.s(1) : 0
+        readonly property bool itemActive: ListView.isCurrentItem || mouseArea.containsMouse
+
+        color: itemActive ? ThemeService.menuItemBackground(true) : "transparent"
+        border.color: itemActive ? ThemeService.menuItemBorder(true) : "transparent"
+        border.width: itemActive && Settings.appearance.enableBorder ? ScalerService.s(1) : 0
+
+        Behavior on color {
+          ColorAnimation {
+            duration: ThemeService.themeTransitioning ? 0 : 140
+            easing.type: Easing.OutCubic
+          }
+        }
+
+        Behavior on border.color {
+          ColorAnimation {
+            duration: ThemeService.themeTransitioning ? 0 : 140
+            easing.type: Easing.OutCubic
+          }
+        }
 
         opacity: 0
 
@@ -124,6 +140,8 @@ Rectangle {
               name: modelData.name || "Unknown"
               size: "small"
               elide: Text.ElideRight
+              isBold: itemActive
+              textColor: ThemeService.menuItemText(itemActive)
               opacity: 0
 
               SequentialAnimation on opacity {
@@ -188,7 +206,7 @@ Rectangle {
 
     CustomText{
       visible: container.apps.length === 0
-      name: "Không có kết quả"
+      name: "No results"
       anchors.centerIn: parent
 
     }

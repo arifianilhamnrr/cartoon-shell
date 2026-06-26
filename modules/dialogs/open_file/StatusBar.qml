@@ -46,7 +46,7 @@ Rectangle {
 
           TextField {
             Layout.fillWidth: true
-            placeholderText: "Tìm kiếm thư mục..."
+            placeholderText: "Search folders..."
             text: root.selectedFile.toString().replace("file://", "")
             palette.text: theme.primary.foreground       // màu chữ chính
             palette.placeholderText: theme.primary.dim_foreground  // sửa thành dim_foreground
@@ -112,7 +112,7 @@ Rectangle {
 
           TextField {
             Layout.fillWidth: true
-            placeholderText: "Tìm kiếm thư mục..."
+            placeholderText: "Search folders..."
             palette.text: theme.primary.foreground       // màu chữ chính
             palette.placeholderText: theme.primary.dim_foreground  // sửa thành dim_foreground
             font.pixelSize: ScalerService.s(14)

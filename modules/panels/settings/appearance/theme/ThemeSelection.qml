@@ -10,7 +10,7 @@ RowLayout {
   spacing: ScalerService.s(12)
 
   Text {
-    text: lang.appearance?.theme_label || "Chủ đề:"
+    text: lang.appearance?.theme_label || "Theme:"
     color: theme.primary.foreground
     font {
       family: "ComicShannsMono Nerd Font"
@@ -27,9 +27,8 @@ RowLayout {
     Com.ThemeCard {
       type: "light"
       isSelected: theme.type === "light"
-      label: lang.appearance?.theme_light || "Sáng"
+      label: lang.appearance?.theme_light || "Light"
       onClicked: {
-        // Set theme to matugen and mode to light
         Settings.appearance.theme = "matugen";
         Settings.appearance.dynamic = true;
         Settings.appearance.mode = "light";
@@ -40,7 +39,7 @@ RowLayout {
     Com.ThemeCard {
       type: "dark"
       isSelected: theme.type === "dark"
-      label: lang.appearance?.theme_dark || "Tối"
+      label: lang.appearance?.theme_dark || "Dark"
       onClicked: {
         Settings.appearance.theme = "matugen";
         Settings.appearance.dynamic = true;

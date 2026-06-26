@@ -11,7 +11,7 @@ PanelWindow {
   id: root
 
   implicitWidth: ScalerService.s(450)
-  implicitHeight: ScalerService.s(800)
+  implicitHeight: ScalerService.s(920)
   property real animationProgress: 0
   SequentialAnimation on animationProgress {
     running: true
@@ -41,6 +41,9 @@ PanelWindow {
 
   color: "transparent"
   focusable: true
+
+  property alias wifiManager: wifiManager
+
   WifiService {
     id: wifiManager
   }
@@ -92,6 +95,12 @@ PanelWindow {
       }
 
       Com.WifiStatus {
+        Layout.fillWidth: true
+        wifiManager: wifiManager
+        animationProgress: root.animationProgress
+      }
+
+      Com.WifiSpeedCard {
         Layout.fillWidth: true
         wifiManager: wifiManager
         animationProgress: root.animationProgress

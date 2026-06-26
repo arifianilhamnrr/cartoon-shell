@@ -63,9 +63,34 @@
     "application": "Aplikasi",
     "sleep": "Mode Tidur",
     "logout": "Keluar",
+    "hibernate": "Hibernasi",
     "shutdown": "Matikan",
     "restart": "Mulai Ulang",
     "lock": "Kunci Layar"
+  },
+  "session_menu": {
+    "title": "Menu Sesi",
+    "hint": "↑↓ navigasi · Enter pilih · Esc tutup"
+  },
+  "system_settings": {
+    "title": "Sistem",
+    "loading": "Memuat spesifikasi perangkat...",
+    "device": "Perangkat",
+    "hardware": "Perangkat Keras",
+    "runtime": "Runtime",
+    "hostname": "Hostname",
+    "os": "Sistem Operasi",
+    "kernel": "Kernel",
+    "architecture": "Arsitektur",
+    "cpu": "Prosesor",
+    "cpu_cores": "Jumlah Core",
+    "memory": "Memori",
+    "gpu": "Grafis",
+    "storage": "Partisi Sistem",
+    "uptime": "Waktu aktif",
+    "boot_time": "Waktu boot",
+    "compositor": "Compositor",
+    "shell": "Shell"
   },
   "mixer": {
     "title": "Mixer Audio",
@@ -120,6 +145,7 @@
     "sleep": "masuk mode tidur",
     "lock": "kunci layar",
     "logout": "keluar",
+    "hibernate": "hibernasi",
     "restart": "mulai ulang",
     "shutdown": "matikan"
   },
@@ -172,6 +198,51 @@
     "title": "Volume",
     "muted": "Dibisukan"
   },
+  "brightness": {
+    "title": "Kecerahan"
+  },
+  "display": {
+    "title": "Layar",
+    "laptop_only": "Layar laptop saja",
+    "extend": "Perluas",
+    "mirror": "Cermin"
+  },
+  "battery_power": {
+    "monitor_title": "Monitor Baterai",
+    "details_title": "Detail Baterai",
+    "title": "Daya",
+    "keep_awake": "Layar Tetap Nyala",
+    "keep_awake_hint": "Cegah layar tidur",
+    "keep_awake_active_since": "Aktif sejak {time}",
+    "keep_awake_elapsed": "Sudah {duration}",
+    "profile_title": "Profil Daya",
+    "power_saver": "Hemat Baterai",
+    "balanced": "Seimbang",
+    "performance": "Performa",
+    "profile_unavailable": "Profil daya tidak tersedia"
+  },
+  "performance_settings": {
+    "title": "Kinerja",
+    "cpu": "CPU",
+    "ram": "RAM",
+    "show_cpu_on_bar": "Tampilkan CPU di bar",
+    "show_ram_on_bar": "Tampilkan RAM di bar",
+    "bar_style": "Gaya bar",
+    "current_usage": "Penggunaan saat ini"
+  },
+  "audio": {
+    "title": "Audio",
+    "show_on_bar": "Tampilkan volume di bar",
+    "bar_style": "Gaya bar",
+    "output_devices": "Perangkat Output",
+    "input_device": "Perangkat Input",
+    "input_devices": "Perangkat Input",
+    "no_devices": "Tidak ada perangkat output",
+    "no_input_devices": "Tidak ada perangkat input",
+    "unknown_device": "Perangkat tidak dikenal",
+    "default_device": "Default",
+    "open_mixer": "Buka Audio Mixer"
+  },
   "bluetooth": {
     "title": "Bluetooth",
     "enabled": "Bluetooth nyala",
@@ -183,6 +254,8 @@
     "paired": "Dipasangkan",
     "not_connected": "Tidak terhubung",
     "searching": "Mencari perangkat...",
+    "scan": "Pindai",
+    "devices": "Perangkat",
     "no_devices": "Tidak ada perangkat",
     "turn_on": "Nyalakan Bluetooth untuk menghubungkan perangkat",
     "pair_error": "Tidak dapat memasangkan perangkat"
@@ -193,6 +266,7 @@
     "disabled": "WiFi mati",
     "not_connected": "Tidak terhubung",
     "available_networks": "Jaringan tersedia",
+    "scan": "Pindai",
     "searching": "Mencari jaringan...",
     "no_networks": "Tidak ada jaringan",
     "turn_on": "Nyalakan WiFi untuk melihat jaringan",
@@ -201,7 +275,18 @@
     "no_password": "Tidak perlu kata sandi",
     "enter_password": "Masukkan kata sandi",
     "password_required": "Silakan masukkan kata sandi",
-    "wrong_password": "Kata sandi salah"
+    "wrong_password": "Kata sandi salah",
+    "network_speed": "Kecepatan Jaringan",
+    "download": "Unduh",
+    "upload": "Unggah",
+    "interface": "Antarmuka",
+    "daily_usage": "Total pemakaian",
+    "show_speed_on_bar": "Tampilkan kecepatan jaringan di bar"
+  },
+  "music": {
+    "lyrics": "Lirik",
+    "loading_lyrics": "Memuat lirik...",
+    "no_lyrics": "Lirik tidak ditemukan"
   },
   "infoSection": {
     "name": "Nama CPU",

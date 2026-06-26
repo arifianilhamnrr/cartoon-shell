@@ -42,8 +42,6 @@ PanelWindow {
   color: "transparent"
   focusable: true
 
-  signal confirmRequested(string action, string actionLabel)
-
   Behavior on width {
     NumberAnimation {
       duration: 60
@@ -138,9 +136,6 @@ PanelWindow {
           LauncherComponents.Sidebar {
             id: sidebar
             visible: !(VisibleService.fullsetting && VisibleService.setting)
-            onConfirmRequested: (action, actionLabel) => {
-              root.confirmRequested(action, actionLabel);
-            }
           }
 
           Loader {

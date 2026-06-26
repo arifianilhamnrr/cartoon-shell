@@ -6,7 +6,7 @@ Item {
   id: header
 
   CustomText{
-    name: lang?.calendar?.title || "Lịch"
+    name: lang?.calendar?.title || "Calendar"
     anchors.centerIn: parent
 
     isBold: true

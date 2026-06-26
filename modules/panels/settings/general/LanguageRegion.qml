@@ -66,7 +66,7 @@ Item {
         spacing: ScalerService.s(10)
 
         CustomText {
-          name: lang.general?.language_label || "Ngôn ngữ:"
+          name: lang.general?.language_label || "Language:"
           size: "small"
           opacity: root.animationProgress > 0.3 ? 1 : 0
           Behavior on opacity {

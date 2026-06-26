@@ -1,4 +1,5 @@
 import QtQuick
+import qs.services
 
 Rectangle {
   id: root
@@ -21,12 +22,14 @@ Rectangle {
   }
   Behavior on color {
     ColorAnimation {
-      duration: 200
+      duration: ThemeService.themeTransitioning ? 0 : 280
+      easing.type: Easing.InOutCubic
     }
   }
   Behavior on border.color {
     ColorAnimation {
-      duration: 100
+      duration: ThemeService.themeTransitioning ? 0 : 280
+      easing.type: Easing.InOutCubic
     }
   }
 }

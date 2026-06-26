@@ -7,7 +7,7 @@ Item {
   id: root
 
   CustomText {
-    name: lang.mixer.title
+    name: lang?.mixer?.title || "Audio Mixer"
     size: "large"
     isBold: true
     anchors.centerIn: parent

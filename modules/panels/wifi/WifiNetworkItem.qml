@@ -16,7 +16,7 @@ ColumnLayout {
     id: wifiItem
     width: parent.width
     Layout.fillWidth: true
-    Layout.preferredHeight: ScalerService.s(70)
+    Layout.preferredHeight: ScalerService.s(78)
     color: mouseArea.containsMouse
     ? Qt.alpha(theme.button.background_select, 0.5)
     : (networkData.isConnected
@@ -38,9 +38,24 @@ ColumnLayout {
           textColor: networkData.isConnected ? theme.primary.foreground : theme.primary.foreground
         }
         CustomText {
-          name: networkData.security + " • " + networkData.signal
+          name: {
+            var parts = [];
+            if (networkData.security)
+              parts.push(networkData.security);
+            if (networkData.signal)
+              parts.push(networkData.signal + "%" + (networkData.signalLabel ? " • " + networkData.signalLabel : ""));
+            if (networkData.frequency)
+              parts.push(networkData.frequency);
+            if (networkData.channel)
+              parts.push("Ch " + networkData.channel);
+            if (networkData.rate)
+              parts.push(networkData.rate);
+            return parts.join(" • ");
+          }
           size: "xs"
           textColor: networkData.isConnected ? theme.button.text : theme.primary.dim_foreground
+          elide: Text.ElideRight
+          Layout.fillWidth: true
         }
       }
       Item{Layout.fillWidth: true}

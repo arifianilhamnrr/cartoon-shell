@@ -75,7 +75,7 @@ Item {
 
   function saveAndValidateApiKey(key) {
     if (key === "") {
-      errorMessage = "Vui lòng nhập API key";
+      errorMessage = "Please enter API key";
       return;
     }
     if (!Settings.weather) Settings.weather = {}
@@ -171,7 +171,7 @@ Item {
             verticalAlignment: TextInput.AlignVCenter
             selectByMouse: true
             clip: true
-            placeholderText: lang?.weather?.apiKeyPlaceholder || "Nhập API key của bạn..."
+            placeholderText: lang?.weather?.apiKeyPlaceholder || "Enter your API key..."
             palette.placeholderText: theme.primary.dim_foreground
 
             onTextChanged: {
@@ -182,7 +182,7 @@ Item {
         }
 
         CustomText {
-          name: lang?.weather?.apiKeyHint || "Nhận API key miễn phí tại: weatherapi.com"
+          name: lang?.weather?.apiKeyHint || "Get a free API key at: weatherapi.com"
           size: "xsmall"
           font.italic: true
           wrapMode: Text.WordWrap
@@ -207,7 +207,7 @@ Item {
           }
 
           CustomText {
-            name: lang?.weather?.locationLabel || "Địa điểm"
+            name: lang?.weather?.locationLabel || "Location"
             size: "medium"
             isBold: true
             textColor: theme.primary.foreground
@@ -248,7 +248,7 @@ Item {
                 verticalAlignment: TextInput.AlignVCenter
                 selectByMouse: true
                 clip: true
-                placeholderText: lang?.weather?.locationPlaceholder || "Tìm kiếm thành phố..."
+                placeholderText: lang?.weather?.locationPlaceholder || "Search for a city..."
                 palette.placeholderText: theme.primary.dim_foreground
 
                 onActiveFocusChanged: {

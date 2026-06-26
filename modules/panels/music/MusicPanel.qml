@@ -31,7 +31,7 @@ PanelWindow {
   }
 
   implicitWidth: ScalerService.s(500)
-  implicitHeight: ScalerService.s(500)
+  implicitHeight: ScalerService.s(680)
   focusable: true
 
   anchors {
@@ -60,6 +60,7 @@ PanelWindow {
   onVisibleChanged: {
     if (visible) {
       cavaService.open();
+      LyricsService.updateFromPlayer();
     } else {
       cavaService.close();
     }
@@ -138,6 +139,10 @@ PanelWindow {
       }
       Com.MusicProgressBar{
         animationProgress : root.animationProgress
+      }
+
+      Com.MusicLyrics {
+        animationProgress: root.animationProgress
       }
 
       // Cava Visualizer

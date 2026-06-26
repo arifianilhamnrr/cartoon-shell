@@ -127,7 +127,7 @@ Singleton {
     var command = "matugen image '"
     + currentWallpaper +
     "' -j hex --mode " + themeMode +
-    " --prefer dark";
+    " --prefer=darkness";
     matugenProcess.command = ["bash", "-c", command];
     matugenProcess.running = true;
     reloadTimer.restart();

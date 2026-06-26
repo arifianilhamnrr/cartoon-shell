@@ -89,6 +89,21 @@ Rectangle {
       category: "wallpaper"
     }
     ]
+  },
+  {
+    categoryName: "Network",
+    items: [
+    {
+      name: "WiFi",
+      icon: "settings/network.png",
+      category: "wifi"
+    },
+    {
+      name: "Bluetooth",
+      icon: "settings/bluetooth.png",
+      category: "bluetooth"
+    }
+    ]
   }
   ]
 

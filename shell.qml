@@ -22,9 +22,26 @@ ShellRoot {
   }
   LoaderService {
     id: loaderService
+    onConfirmRequested: showConfirmDialog
   }
   property var theme: ThemeService.theme
   property var lang: LanguageService.translations
+
+  Rectangle {
+    anchors.fill: parent
+    z: 200000
+    color: theme.primary.background
+    opacity: ThemeService.themeTransitioning ? 0.08 : 0
+    visible: opacity > 0
+    enabled: false
+
+    Behavior on opacity {
+      NumberAnimation {
+        duration: 280
+        easing.type: Easing.OutCubic
+      }
+    }
+  }
 
   function showConfirmDialog(action, actionLabel) {
     confirmDialog.show(action, actionLabel);
@@ -65,12 +82,15 @@ ShellRoot {
         WallpaperService.init();
         ProgramCheckerService.init();
         LanguageService.init();
+
       }
 
       Background {}
       Bar {}
       NotificationPopup {}
       VolumeOsd {}
+      BrightnessOsd {}
+      DisplayOsd {}
     }
   }
 }

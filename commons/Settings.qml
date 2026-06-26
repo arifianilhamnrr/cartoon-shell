@@ -130,13 +130,13 @@ Singleton {
 
   component Weather: JsonObject {
     property string keyApi: "21e0f911c7de4308916165005251210"
-    property string location: "Ho Chi Minh City,Vietnam"
+    property string location: "Jakarta,Indonesia"
   }
 
   component Appearance: JsonObject {
     property string theme: "matugen"
     property string mode: "dark"
-    property string countryFlag: "vietnam"
+    property string countryFlag: "indonesia"
     property string fonts: ""
     property int radius1: 22
     property int radius2: 16
@@ -144,14 +144,14 @@ Singleton {
     property bool enableBorder: false
     // Thêm các properties cho dynamic theme
     property bool dynamic: false
-    property string light: "light"
-    property string dark: "dark"
+    property string light: "gruvbox"
+    property string dark: "macchiato"
     property string matugenType: "scheme-tonal-spot"
     property string font: "ComicShannsMono Nerd Font"
   }
 
   component General: JsonObject {
-    property string lang: "vi"
+    property string lang: "en"
     property real screenHeight: 1080
     property real screenWidth: 1920
     property real scale: 1.0
@@ -167,9 +167,9 @@ Singleton {
     property string defaultWallpaper: ""
     property string fillMode: "crop"
     property color fillColor: "#000000"
-    property int shaders: 0
+    property int shaders: 2
     property list<var> monitors: []
-    property int transitionDuration: 500
+    property int transitionDuration: 450
     property real transitionEdgeSmoothness: 0.05
     // Video-specific properties
     property bool videoMuted: true

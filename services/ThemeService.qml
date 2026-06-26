@@ -20,14 +20,53 @@ Singleton {
 
   // Theme property - sẽ chứa theme theo format mới
   property var theme: getFallbackTheme()
+  property bool themeTransitioning: false
+  property real themeTransition: 1
+  property bool _themeReady: false
+  property var _transitionFrom: null
+  property var _transitionTarget: null
+  property var _lastMatugenJson: null
+  property var _pendingRefreshReasons: []
 
   readonly property bool isInitialized: true
+
+  NumberAnimation {
+    id: themeTransitionAnim
+    target: root
+    property: "themeTransition"
+    from: 0
+    to: 1
+    duration: 280
+    easing.type: Easing.OutCubic
+    onStarted: {
+      root.themeTransitioning = true;
+      root._transitionFrom = root.cloneTheme(root.theme);
+    }
+    onStopped: root.finishThemeTransition()
+  }
+
+  onThemeTransitionChanged: {
+    if (!root.themeTransitioning || !root._transitionTarget)
+      return;
+    root.theme = root.blendThemes(
+      root._transitionFrom,
+      root._transitionTarget,
+      root.themeTransition
+    );
+  }
   property Timer reloadTimer: Timer {
     interval: 200
     repeat: false
     onTriggered: {
       root.refresh();
     }
+  }
+
+  Timer {
+    id: refreshCoalesce
+    interval: 24
+    repeat: false
+    onTriggered: root.performRefresh()
   }
 
   signal themeReloaded
@@ -106,6 +145,279 @@ Singleton {
       Settings.appearance.dynamic = (newTheme === "matugen");
     }
     return root.theme;
+  }
+
+  function isDarkAppearance() {
+    if (root.theme && root.theme.type)
+      return root.theme.type === "dark";
+    return Settings.appearance.mode !== "light";
+  }
+
+  function menuItemBackground(active) {
+    const palette = root.theme;
+    if (!palette)
+      return "transparent";
+
+    if (isDarkAppearance()) {
+      if (active)
+        return Qt.alpha(palette.button.text, 0.16);
+      return Qt.alpha(palette.primary.foreground, 0.05);
+    }
+
+    if (active)
+      return Qt.alpha(palette.button.background_select, 0.6);
+    return Qt.alpha(palette.button.background, 0.6);
+  }
+
+  function menuItemBorder(active) {
+    const palette = root.theme;
+    if (!palette)
+      return "transparent";
+
+    if (isDarkAppearance()) {
+      if (active)
+        return Qt.alpha(palette.button.text, 0.42);
+      return Qt.alpha(palette.button.border, 0.28);
+    }
+
+    if (active)
+      return palette.button.border_select;
+    return palette.button.border;
+  }
+
+  function menuItemText(active) {
+    const palette = root.theme;
+    if (!palette)
+      return "#ffffff";
+
+    if (active)
+      return palette.primary.bright_foreground;
+    return palette.primary.foreground;
+  }
+
+  function getStaticFallbackThemeName() {
+    return Settings.appearance.mode === "light"
+      ? (Settings.appearance.light || "gruvbox")
+      : (Settings.appearance.dark || "macchiato");
+  }
+
+  function parseMatugenJsonText(text) {
+    if (!text)
+      return null;
+
+    var trimmed = text.trim();
+    if (trimmed.endsWith("ok"))
+      trimmed = trimmed.slice(0, -2).trim();
+
+    try {
+      return JSON.parse(trimmed);
+    } catch (e) {
+      try {
+        var okIndex = trimmed.indexOf("\nok");
+        if (okIndex >= 0)
+          trimmed = trimmed.substring(0, okIndex).trim();
+        return JSON.parse(trimmed);
+      } catch (e2) {
+        console.error("Matugen JSON parse error:", e, e2);
+        return null;
+      }
+    }
+  }
+
+  function resolveWallpaper() {
+    var wallpaper = "";
+
+    for (let i = 0; i < Quickshell.screens.length; i++) {
+      if (Quickshell.screens[i].primary) {
+        wallpaper = WallpaperService.getWallpaper(Quickshell.screens[i].name);
+        break;
+      }
+    }
+
+    if (!wallpaper && Quickshell.screens.length > 0) {
+      wallpaper = WallpaperService.getWallpaper(Quickshell.screens[0].name);
+    }
+
+    if (!wallpaper || wallpaper === "") {
+      wallpaper = Settings.wallpaper.defaultWallpaper || "";
+    }
+
+    return wallpaper;
+  }
+
+  function cloneTheme(source) {
+    if (!source)
+      return null;
+    try {
+      return JSON.parse(JSON.stringify(source));
+    } catch (e) {
+      return source;
+    }
+  }
+
+  function parseHexColor(color) {
+    if (!color || typeof color !== "string")
+      return null;
+
+    var hex = color.trim();
+    if (!hex.startsWith("#"))
+      return null;
+
+    hex = hex.substring(1);
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (hex.length !== 6)
+      return null;
+
+    return {
+      r: parseInt(hex.substring(0, 2), 16),
+      g: parseInt(hex.substring(2, 4), 16),
+      b: parseInt(hex.substring(4, 6), 16)
+    };
+  }
+
+  function toHexChannel(value) {
+    var channel = Math.max(0, Math.min(255, Math.round(value)));
+    var hex = channel.toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  }
+
+  function lerpHexColor(fromColor, toColor, progress) {
+    var fromRgb = parseHexColor(fromColor);
+    var toRgb = parseHexColor(toColor);
+
+    if (!fromRgb && !toRgb)
+      return fromColor || toColor || "#000000";
+    if (!fromRgb)
+      return toColor;
+    if (!toRgb)
+      return fromColor;
+
+    var t = Math.max(0, Math.min(1, progress));
+    return "#"
+      + toHexChannel(fromRgb.r + (toRgb.r - fromRgb.r) * t)
+      + toHexChannel(fromRgb.g + (toRgb.g - fromRgb.g) * t)
+      + toHexChannel(fromRgb.b + (toRgb.b - fromRgb.b) * t);
+  }
+
+  function blendValue(fromValue, toValue, progress) {
+    if (typeof toValue === "string" && toValue.startsWith("#"))
+      return lerpHexColor(fromValue, toValue, progress);
+
+    if (toValue && typeof toValue === "object" && !Array.isArray(toValue)) {
+      var blended = {};
+      for (var key in toValue)
+        blended[key] = blendValue(fromValue ? fromValue[key] : null, toValue[key], progress);
+      return blended;
+    }
+
+    return toValue;
+  }
+
+  function blendThemes(fromTheme, toTheme, progress) {
+    if (!fromTheme)
+      return cloneTheme(toTheme);
+    if (!toTheme)
+      return cloneTheme(fromTheme);
+    return blendValue(fromTheme, toTheme, progress);
+  }
+
+  function applyPaletteFromThemeData(data) {
+    if (!data)
+      return;
+
+    if (data.type && data.primary && data.normal) {
+      var materialData = mapThemeToMaterial(data);
+      var changed = false;
+      for (const key in materialData) {
+        if (palette.hasOwnProperty(key) && palette[key] !== materialData[key]) {
+          palette[key] = materialData[key];
+          changed = true;
+        }
+      }
+      if (changed)
+        stateFileView.writeAdapter();
+      return;
+    }
+
+    var paletteChanged = false;
+    for (const key in data) {
+      if (palette.hasOwnProperty(key) && palette[key] !== data[key]) {
+        palette[key] = data[key];
+        paletteChanged = true;
+      }
+    }
+    if (paletteChanged) {
+      stateFileView.writeAdapter();
+      createMatugenJsonFile();
+    }
+  }
+
+  function startThemeTransition(targetTheme) {
+    if (!targetTheme) {
+      root.loading = false;
+      return;
+    }
+
+    if (themeTransitionAnim.running)
+      themeTransitionAnim.stop();
+
+    root._transitionTarget = cloneTheme(targetTheme);
+    root.themeTransition = 0;
+    themeTransitionAnim.start();
+  }
+
+  function finishThemeTransition() {
+    if (!root._transitionTarget) {
+      root.themeTransitioning = false;
+      root.loading = false;
+      return;
+    }
+
+    root._currentTheme = cloneTheme(root._transitionTarget);
+    root.theme = cloneTheme(root._transitionTarget);
+    root.applyPaletteFromThemeData(root._transitionTarget);
+    root.themeTransition = 1;
+    root.themeTransitioning = false;
+    root._transitionFrom = null;
+    root._transitionTarget = null;
+    root.loading = false;
+    themeReloaded();
+  }
+
+  function commitThemeData(data) {
+    if (!data) {
+      root.loading = false;
+      return;
+    }
+
+    if (data.type && data.primary && data.normal) {
+      root._currentTheme = cloneTheme(data);
+      if (root._themeReady)
+        root.startThemeTransition(data);
+      else {
+        root.theme = cloneTheme(data);
+        root.applyPaletteFromThemeData(data);
+        root._themeReady = true;
+        root.loading = false;
+        themeReloaded();
+      }
+      return;
+    }
+
+    root.applyPaletteFromThemeData(data);
+    root._currentTheme = null;
+    var paletteTheme = getThemeFromPalette();
+    root._currentTheme = paletteTheme;
+    if (root._themeReady)
+      root.startThemeTransition(paletteTheme);
+    else {
+      root.theme = paletteTheme;
+      root._themeReady = true;
+      root.loading = false;
+      themeReloaded();
+    }
   }
 
   function getFallbackTheme() {
@@ -207,6 +519,7 @@ Singleton {
 
   function refresh() {
     root.loading = true;
+    root._currentTheme = null;
 
     // Check if theme is matugen or dynamic
     if (Settings.appearance.theme === "matugen" || Settings.appearance.dynamic) {
@@ -219,9 +532,7 @@ Singleton {
         loadThemeByName(themeName);
       } else {
         // Use fallback theme based on mode
-        var fallbackTheme = Settings.appearance.mode === "light" ? (Settings.appearance.light || "gruvbox-light") : (Settings.appearance.dark || "gruvbox-dark");
-
-        Settings.appearance.theme = fallbackTheme;
+        var fallbackTheme = getStaticFallbackThemeName();
         loadThemeByName(fallbackTheme);
       }
     }
@@ -249,61 +560,27 @@ Singleton {
       themeReader.path = "";
       themeReader.path = path;
     } else {
-      // Try to load matugen.json as fallback
-      fallbackThemeReader.path = "";
-      fallbackThemeReader.path = matugenFilePath;
+      var staticFallback = getStaticFallbackThemeName();
+      var staticPath = "";
+      for (var j = 0; j < themeFiles.length; j++) {
+        var staticName = themeFiles[j].split("/").pop().replace(".json", "");
+        if (staticName === staticFallback) {
+          staticPath = themeFiles[j];
+          break;
+        }
+      }
+
+      if (staticPath) {
+        themeReader.path = "";
+        themeReader.path = staticPath;
+      } else {
+        root.updateColors(getFallbackTheme());
+      }
     }
   }
 
   function updateColors(data) {
-    if (!data) {
-      root.loading = false;
-      return;
-    }
-
-    // Kiểm tra xem data có phải là theme mới hay Material Design 3
-    // Theme mới có cấu trúc: type, primary, button, cursor, normal, bright
-    if (data.type && data.primary && data.normal) {
-      // Đây là theme mới
-      root._currentTheme = data;
-      root.theme = data;
-
-      // Ánh xạ theme mới sang Material Design 3
-      var materialData = mapThemeToMaterial(data);
-
-      // Cập nhật palette
-      let changed = false;
-      for (const key in materialData) {
-        if (palette.hasOwnProperty(key) && palette[key] !== materialData[key]) {
-          palette[key] = materialData[key];
-          changed = true;
-        }
-      }
-      if (changed) {
-        stateFileView.writeAdapter();
-      }
-    } else {
-      // Đây là Material Design 3 format
-      let changed = false;
-      for (const key in data) {
-        if (palette.hasOwnProperty(key) && palette[key] !== data[key]) {
-          palette[key] = data[key];
-          changed = true;
-        }
-      }
-      if (changed) {
-        stateFileView.writeAdapter();
-        // Tạo file matugen.json từ palette hiện tại
-        createMatugenJsonFile();
-      }
-
-      // Tạo theme mới từ palette
-      root._currentTheme = null;
-      root.theme = getThemeFromPalette();
-    }
-
-    root.loading = false;
-    themeReloaded();
+    root.commitThemeData(data);
   }
 
   // Hàm ánh xạ theme mới sang Material Design 3
@@ -349,30 +626,15 @@ Singleton {
   function generateFromWallpaper(mode, type) {
     if (!ProgramCheckerService.matugenAvailable) {
       root.loading = false;
-      // Fall back to static theme
-      var fallbackTheme = Settings.appearance.mode === "light" ? (Settings.appearance.light || "gruvbox-light") : (Settings.appearance.dark || "gruvbox-dark");
-      loadThemeByName(fallbackTheme);
+      loadThemeByName(getStaticFallbackThemeName());
       return;
     }
 
-    // Get wallpaper from primary screen
-    var wallpaper = "";
-    for (let i = 0; i < Quickshell.screens.length; i++) {
-      if (Quickshell.screens[i].primary) {
-        wallpaper = WallpaperService.getWallpaper(Quickshell.screens[i].name);
-        break;
-      }
-    }
-    // If no primary, get from first screen
-    if (!wallpaper && Quickshell.screens.length > 0) {
-      wallpaper = WallpaperService.getWallpaper(Quickshell.screens[0].name);
-    }
+    var wallpaper = resolveWallpaper();
 
     if (!wallpaper || wallpaper === "") {
       root.loading = false;
-      // Fall back to static theme
-      var fallbackTheme = Settings.appearance.mode === "light" ? (Settings.appearance.light || "gruvbox-light") : (Settings.appearance.dark || "gruvbox-dark");
-      loadThemeByName(fallbackTheme);
+      loadThemeByName(getStaticFallbackThemeName());
       return;
     }
 
@@ -392,20 +654,84 @@ Singleton {
     generateProcess.running = true;
   }
 
-  function parseMatugen(json) {
+  function parseMatugenForMode(json, mode) {
     const result = {};
     const colors = json.colors || {};
-    const mode = Settings.appearance.mode === "light" ? "light" : "dark";
+    const targetMode = mode === "light" ? "light" : "dark";
 
     for (const key in matugenMap) {
       const colorObj = colors[key];
-      if (colorObj && colorObj[mode] && colorObj[mode].color) {
-        result[matugenMap[key]] = colorObj[mode].color;
+      var colorValue = null;
+
+      if (colorObj && colorObj[targetMode] && colorObj[targetMode].color) {
+        colorValue = colorObj[targetMode].color;
+      } else if (colorObj && colorObj.default && colorObj.default.color) {
+        colorValue = colorObj.default.color;
+      }
+
+      if (colorValue) {
+        result[matugenMap[key]] = colorValue;
       } else {
         console.warn("Missing color for key:", key);
       }
     }
     return result;
+  }
+
+  function parseMatugen(json) {
+    const mode = Settings.appearance.mode === "light" ? "light" : "dark";
+    return parseMatugenForMode(json, mode);
+  }
+
+  function themeFromMatugenJson(jsonData, mode) {
+    if (!jsonData)
+      return null;
+
+    var matugenPalette = parseMatugenForMode(jsonData, mode);
+    applyPaletteFromThemeData(matugenPalette);
+    root._currentTheme = null;
+    var paletteTheme = getThemeFromPalette();
+    paletteTheme.type = mode === "light" ? "light" : "dark";
+    return paletteTheme;
+  }
+
+  function cacheMatugenJson(jsonData) {
+    if (!jsonData || !jsonData.colors)
+      return;
+
+    root._lastMatugenJson = jsonData;
+  }
+
+  function applyCachedMatugenMode(mode) {
+    if (!root._lastMatugenJson)
+      return false;
+
+    var themeData = themeFromMatugenJson(root._lastMatugenJson, mode);
+    if (!themeData)
+      return false;
+
+    root.commitThemeData(themeData);
+    return true;
+  }
+
+  function scheduleRefresh(reason) {
+    const refreshReason = reason || "general";
+    if (root._pendingRefreshReasons.indexOf(refreshReason) < 0)
+      root._pendingRefreshReasons.push(refreshReason);
+    refreshCoalesce.restart();
+  }
+
+  function performRefresh() {
+    const reasons = root._pendingRefreshReasons;
+    root._pendingRefreshReasons = [];
+    const modeOnly = reasons.length === 1 && reasons[0] === "mode";
+
+    if (modeOnly && (Settings.appearance.theme === "matugen" || Settings.appearance.dynamic)) {
+      if (applyCachedMatugenMode(Settings.appearance.mode))
+        return;
+    }
+
+    root.refresh();
   }
 
   function getDisplayName(path) {
@@ -449,14 +775,13 @@ Singleton {
 
   // Functions cho compatibility với code cũ
   function triggerMatugenOnThemeChange(themeMode) {
+    if (!Settings.appearance)
+      return;
 
-    if (Settings.appearance) {
-      Settings.appearance.mode = themeMode;
-      Settings.appearance.theme = "matugen";
-      Settings.appearance.dynamic = true;
-    }
-
-    root.refresh();
+    Settings.appearance.mode = themeMode;
+    Settings.appearance.theme = "matugen";
+    Settings.appearance.dynamic = true;
+    scheduleRefresh("mode");
   }
 
   function triggerMatugenOnWallpaperChange(currentWallpaper) {
@@ -488,40 +813,28 @@ Singleton {
     target: Settings.appearance
 
     function onThemeChanged() {
-      Qt.callLater(function () {
-          root.refresh();
-      });
+      scheduleRefresh("theme");
     }
 
     function onModeChanged() {
-      Qt.callLater(function () {
-          root.refresh();
-      });
+      scheduleRefresh("mode");
     }
 
     function onDynamicChanged() {
-      Qt.callLater(function () {
-          root.refresh();
-      });
+      scheduleRefresh("dynamic");
     }
 
     function onMatugenTypeChanged() {
-      if (Settings.appearance.dynamic || Settings.appearance.theme === "matugen") {
-        Qt.callLater(function () {
-            root.refresh();
-        });
-      }
+      if (Settings.appearance.dynamic || Settings.appearance.theme === "matugen")
+        scheduleRefresh("matugenType");
     }
   }
 
   Connections {
     target: WallpaperService
     function onWallpaperChanged() {
-      if (Settings.appearance.dynamic || Settings.appearance.theme === "matugen") {
-        Qt.callLater(function () {
-            root.refresh();
-        });
-      }
+      if (Settings.appearance.dynamic || Settings.appearance.theme === "matugen")
+        scheduleRefresh("wallpaper");
     }
   }
 
@@ -567,22 +880,22 @@ Singleton {
     running: false
     onExited: exitCode => {
       if (exitCode === 0) {
-        try {
-          var jsonText = stdout.text.trim();
-          if (jsonText) {
-            var jsonData = JSON.parse(jsonText);
-            root.updateColors(root.parseMatugen(jsonData));
-          } else {
-            console.error("Matugen returned empty output");
-            root.loading = false;
-          }
-        } catch (e) {
-          console.error("Matugen Parse Error:", e);
+        var jsonData = root.parseMatugenJsonText(stdout.text);
+        if (jsonData) {
+          var resolvedMode = jsonData.mode || (Settings.appearance.mode === "light" ? "light" : "dark");
+          root.cacheMatugenJson(jsonData);
+          var paletteTheme = root.themeFromMatugenJson(jsonData, resolvedMode);
+          root.commitThemeData(paletteTheme);
+          root.createMatugenJsonFile();
+        } else {
+          console.error("Matugen returned invalid output");
           root.loading = false;
+          root.loadThemeByName(root.getStaticFallbackThemeName());
         }
       } else {
         console.error("Matugen Error:", stderr.text);
         root.loading = false;
+        root.loadThemeByName(root.getStaticFallbackThemeName());
       }
     }
     stdout: StdioCollector {}

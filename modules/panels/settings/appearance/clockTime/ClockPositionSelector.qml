@@ -21,7 +21,7 @@ Item {
 
       Text {
         id: label
-        text: lang.appearance?.clock_position_label || "Vị trí đồng hồ:"
+        text: lang.appearance?.clock_position_label || "Clock Position:"
         color: theme.primary.foreground
         font {
           family: "ComicShannsMono Nerd Font"
@@ -192,17 +192,17 @@ Item {
         text: {
           var pos = Settings.clock.positionWidget;
           var descriptions = {
-            "topLeft": "Trên cùng bên trái",
-            "top": "Trên cùng giữa",
-            "topRight": "Trên cùng bên phải",
-            "left": "Bên trái giữa",
-            "center": "Chính giữa màn hình",
-            "right": "Bên phải giữa",
-            "bottomLeft": "Dưới cùng bên trái",
-            "bottom": "Dưới cùng giữa",
-            "bottomRight": "Dưới cùng bên phải"
+            "topLeft": "Top left",
+            "top": "Top center",
+            "topRight": "Top right",
+            "left": "Middle left",
+            "center": "Screen center",
+            "right": "Middle right",
+            "bottomLeft": "Bottom left",
+            "bottom": "Bottom center",
+            "bottomRight": "Bottom right"
           };
-          return descriptions[pos] || "Vị trí: " + pos;
+          return descriptions[pos] || "Position: " + pos;
         }
         color: theme.primary.foreground
         font {

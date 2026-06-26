@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
-import Quickshell.Services.UPower
 import QtQuick.Controls
 import Quickshell.Services.SystemTray
 import qs.services
@@ -17,8 +16,11 @@ Rectangle {
   border.width: Settings.appearance.enableBorder ? ScalerService.s(3) : 0
   radius: ScalerService.s(Settings.appearance.radius2)
   color: theme.primary.background
-  anchors.centerIn: parent
+  anchors.verticalCenter: parent.verticalCenter
+  anchors.right: isVertical ? undefined : parent.right
+  anchors.horizontalCenter: isVertical ? parent.horizontalCenter : undefined
   property real animationProgress: 0
+  readonly property int contentPadding: ScalerService.s(10)
   SequentialAnimation on animationProgress {
     running: true
     NumberAnimation {
@@ -28,8 +30,17 @@ Rectangle {
       easing.type: Easing.Linear
     }
   }
-  implicitWidth: root.animationProgress > 0.5 ? parent.width : 0
+  implicitWidth: {
+    if (root.animationProgress <= 0.5)
+      return 0;
+    if (isVertical)
+      return parent.width;
+    const contentWidth = trayLoader.item ? trayLoader.item.implicitWidth : 0;
+    return contentWidth + (contentPadding * 2);
+  }
   implicitHeight: root.animationProgress > 0.5 ? parent.height : 0
+  width: implicitWidth
+  height: implicitHeight
   Behavior on implicitHeight {
     NumberAnimation {
       id: heightAnim
@@ -45,56 +56,10 @@ Rectangle {
     }
   }
 
-  property string bluetooth_icon: Directories.assetsPath + "/settings/bluetooth.png"
   property real currentVolume: Pipewire.defaultAudioSink?.audio.volume ?? 0
   property bool isMuted: Pipewire.defaultAudioSink?.audio.mute ?? false
   property bool isVertical: Settings.bar.position === "left" || Settings.bar.position === "right"
   property bool shouldShowOsd: false
-
-  // UPower battery display – using displayDevice (always available)
-  property string batteryPercent: "…"
-  property bool batteryCharging: false
-  property string batteryIconSource: Directories.assetsPath + '/battery/full.png'
-  property string batteryIconVerticalSource: Directories.assetsPath + '/battery/full.png'
-
-  function refreshBatteryDisplay() {
-    var dev = UPower.displayDevice;
-    if (!dev || !dev.ready) return;
-    root.batteryPercent = Math.round(dev.percentage * 100) + "%";
-    root.batteryCharging = (dev.state === UPowerDeviceState.Charging);
-    var icon = getBatteryIcon(Math.round(dev.percentage * 100));
-    root.batteryIconSource = icon;
-    root.batteryIconVerticalSource = icon;
-  }
-
-  function getBatteryIcon(percent) {
-    if (root.batteryCharging) return Directories.assetsPath + '/battery/battery-1.png';
-    if (percent <= 20) return Directories.assetsPath + '/battery/battery-2.png';
-    if (percent <= 50) return Directories.assetsPath + '/battery/battery-3.png';
-    if (percent <= 80) return Directories.assetsPath + '/battery/battery-3.png';
-    return Directories.assetsPath + '/battery/full.png';
-  }
-
-  // Wait for displayDevice to become ready, then start listening
-  Timer {
-    id: initTimer
-    interval: 500
-    running: true
-    repeat: true
-    onTriggered: {
-      if (UPower.displayDevice && UPower.displayDevice.ready) {
-        stop();
-        refreshBatteryDisplay();
-      }
-    }
-  }
-
-  Connections {
-    target: UPower.displayDevice
-    enabled: UPower.displayDevice && UPower.displayDevice.ready
-    function onPercentageChanged() { refreshBatteryDisplay(); }
-    function onStateChanged() { refreshBatteryDisplay(); }
-  }
 
   PwObjectTracker {
     objects: [Pipewire.defaultAudioSink]
@@ -106,8 +71,20 @@ Rectangle {
 
   // UI Layout
   Loader {
-    anchors.fill: parent
-    anchors.margins: isVertical ? ScalerService.s(6) : ScalerService.s(5)
+    id: trayLoader
+    anchors.verticalCenter: parent.verticalCenter
+    anchors.horizontalCenter: isVertical ? parent.horizontalCenter : undefined
+    anchors.right: isVertical ? undefined : parent.right
+    anchors.rightMargin: isVertical ? 0 : contentPadding
+    anchors.leftMargin: isVertical ? contentPadding : 0
+    anchors.topMargin: isVertical ? ScalerService.s(6) : 0
+    anchors.bottomMargin: isVertical ? ScalerService.s(6) : 0
+    width: isVertical
+      ? (parent.width - contentPadding * 2)
+      : (item ? item.implicitWidth : 0)
+    height: isVertical
+      ? (parent.height - ScalerService.s(12))
+      : (item ? item.implicitHeight : parent.height)
     sourceComponent: isVertical ? verticalLayout : horizontalLayout
   }
 
@@ -115,8 +92,8 @@ Rectangle {
     id: horizontalLayout
 
     RowLayout {
-      anchors.fill: parent
-      spacing: ScalerService.s(5)
+      id: horizontalTrayRow
+      spacing: ScalerService.s(8)
 
       // System Tray Icons
       Repeater {
@@ -125,8 +102,9 @@ Rectangle {
 
         Rectangle {
           id: trayItemContainer
-          Layout.preferredWidth: ScalerService.s(35)
-          Layout.fillHeight: true
+          Layout.preferredWidth: ScalerService.s(30)
+          Layout.preferredHeight: ScalerService.s(30)
+          Layout.alignment: Qt.AlignVCenter
           color: "transparent"
           radius: ScalerService.s(6)
           transformOrigin: Item.Center
@@ -134,11 +112,14 @@ Rectangle {
           visible: modelData.icon !== ""
           property var trayItem: modelData
 
-          Image {
+          TrayIconImage {
             id: trayIcon
             anchors.centerIn: parent
-            width: ScalerService.s(25)
-            height: ScalerService.s(25)
+            width: ScalerService.s(22)
+            height: ScalerService.s(22)
+            trayId: trayItemContainer.trayItem?.id || ""
+            trayTitle: trayItemContainer.trayItem?.title || ""
+            trayTooltip: trayItemContainer.trayItem?.tooltipTitle || ""
             source: trayItemContainer.trayItem?.icon || ""
 
             ToolTip {
@@ -191,14 +172,11 @@ Rectangle {
         }
       }
 
-      Item {
-        Layout.preferredWidth: trayRepeater.count > 0 ? ScalerService.s(5) : 0
-      }
-
       // Bluetooth
       Com.StatContainer {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        Layout.preferredWidth: ScalerService.s(32)
+        Layout.preferredHeight: ScalerService.s(32)
+        Layout.alignment: Qt.AlignVCenter
         panelName: "bluetooth"
 
         Com.BluetoothStat {
@@ -206,13 +184,10 @@ Rectangle {
         }
       }
 
-      Item {
-        Layout.fillWidth: true
-      }
-
       Com.StatContainer {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        Layout.preferredWidth: ScalerService.s(32)
+        Layout.preferredHeight: ScalerService.s(32)
+        Layout.alignment: Qt.AlignVCenter
         panelName: "wifi"
 
         Com.WifiStat {
@@ -220,14 +195,11 @@ Rectangle {
         }
       }
 
-      Item {
-        Layout.fillWidth: true
-      }
-
       // Volume
       Com.StatContainer {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
+        Layout.preferredWidth: ScalerService.s(32)
+        Layout.preferredHeight: ScalerService.s(32)
+        Layout.alignment: Qt.AlignVCenter
         panelName: "mixer"
 
         Com.VolumeStat {
@@ -235,69 +207,24 @@ Rectangle {
         }
       }
 
-      Item {
-        Layout.fillWidth: true
-      }
+      Com.StatContainer {
+        Layout.preferredWidth: batteryStat.width + ScalerService.s(4)
+        Layout.preferredHeight: ScalerService.s(32)
+        Layout.alignment: Qt.AlignVCenter
+        panelName: "battery"
 
-      // Battery (UPower displayDevice)
-      Rectangle {
-        id: batteryContainer
-        Layout.preferredWidth: batteryContent.width
-        Layout.fillHeight: true
-        color: "transparent"
-        radius: ScalerService.s(6)
-        transformOrigin: Item.Center
-
-        RowLayout {
-          id: batteryContent
+        Com.BatteryStat {
+          id: batteryStat
           anchors.centerIn: parent
-          spacing: ScalerService.s(8)
-
-          Image {
-            id: batteryIcon
-            source: root.batteryIconSource
-            width: ScalerService.s(30)
-            height: ScalerService.s(30)
-            sourceSize: Qt.size(ScalerService.s(30), ScalerService.s(30))
-          }
-
-          // Battery percentage text (bold)
-          Text {
-            text: root.batteryPercent
-            color: theme.primary.foreground
-            font.pixelSize: ScalerService.s(13)
-            font.bold: true
-            verticalAlignment: Text.AlignVCenter
-          }
         }
-
-        MouseArea {
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onEntered: batteryContainer.scale = 1.1
-          onExited: batteryContainer.scale = 1.0
-          onPressed: batteryContainer.scale = 0.95
-          onReleased: batteryContainer.scale = 1.1
-          onClicked: VisibleService.togglePanel("battery")
-        }
-
-        Behavior on scale {
-          NumberAnimation {
-            duration: 100
-          }
-        }
-      }
-
-      Item {
-        Layout.fillWidth: true
       }
 
       // Power Off
       Rectangle {
         id: powerContainer
-        Layout.preferredWidth: powerIcon.width
-        Layout.fillHeight: true
+        Layout.preferredWidth: ScalerService.s(30)
+        Layout.preferredHeight: ScalerService.s(30)
+        Layout.alignment: Qt.AlignVCenter
         color: "transparent"
         radius: ScalerService.s(6)
         transformOrigin: Item.Center
@@ -305,9 +232,9 @@ Rectangle {
         Image {
           id: powerIcon
           source: Directories.assetsPath + '/system/poweroff.png'
-          width: ScalerService.s(30)
-          height: ScalerService.s(30)
-          sourceSize: Qt.size(ScalerService.s(30), ScalerService.s(30))
+          width: ScalerService.s(24)
+          height: ScalerService.s(24)
+          sourceSize: Qt.size(ScalerService.s(24), ScalerService.s(24))
           anchors.centerIn: parent
         }
 
@@ -369,10 +296,13 @@ Rectangle {
                 visible: modelData.icon !== ""
                 property var trayItem: modelData
 
-                Image {
+                TrayIconImage {
                   anchors.centerIn: parent
                   width: ScalerService.s(20)
                   height: ScalerService.s(20)
+                  trayId: trayItemContainerVertical.trayItem?.id || ""
+                  trayTitle: trayItemContainerVertical.trayItem?.title || ""
+                  trayTooltip: trayItemContainerVertical.trayItem?.tooltipTitle || ""
                   source: trayItemContainerVertical.trayItem?.icon || ""
                 }
 
@@ -443,54 +373,15 @@ Rectangle {
         }
       }
 
-      // Battery (vertical, UPower displayDevice)
-      Item {
+      Com.StatContainer {
         Layout.fillWidth: true
-        Layout.preferredHeight: ScalerService.s(50)
+        Layout.preferredHeight: batteryStatVertical.height + ScalerService.s(8)
+        panelName: "battery"
 
-        Item {
+        Com.BatteryStat {
+          id: batteryStatVertical
           anchors.centerIn: parent
-          width: parent.height
-          height: parent.width
-          transformOrigin: Item.Center
-
-          ColumnLayout {
-            anchors.centerIn: parent
-            spacing: ScalerService.s(2)
-
-            Image {
-              id: batteryIconVertical
-              source: root.batteryIconVerticalSource
-              width: ScalerService.s(25)
-              height: ScalerService.s(25)
-              sourceSize: Qt.size(ScalerService.s(25), ScalerService.s(25))
-              Layout.alignment: Qt.AlignHCenter
-            }
-
-            // Battery percentage text (bold)
-            Text {
-              text: root.batteryPercent
-              color: theme.primary.foreground
-              font.pixelSize: ScalerService.s(10)
-              font.bold: true
-              Layout.alignment: Qt.AlignHCenter
-            }
-          }
-        }
-
-        MouseArea {
-          anchors.fill: parent
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          onClicked: VisibleService.togglePanel("battery")
-          onEntered: parent.opacity = 0.8
-          onExited: parent.opacity = 1.0
-        }
-
-        Behavior on opacity {
-          NumberAnimation {
-            duration: 100
-          }
+          vertical: true
         }
       }
 

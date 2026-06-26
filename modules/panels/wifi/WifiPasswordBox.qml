@@ -82,7 +82,7 @@ Rectangle {
       }
 
       ButtonText {
-        name: lang?.wifi?.connect || "Kết nối"
+        name: lang?.wifi?.connect || "Connect"
         size: "xs"
         implicitHeight: ScalerService.s(30)
         visible: !networkData.isConnected
@@ -94,7 +94,7 @@ Rectangle {
           Qt.callLater(function () {
               if (wifiManager.connectionError) {
                 passwordBox.hasError = true;
-                passwordBox.errorMessage = lang?.wifi?.wrong_password || "Mật khẩu không đúng";
+                passwordBox.errorMessage = lang?.wifi?.wrong_password || "Wrong password";
                 // Nếu sai mật khẩu, xóa saved password để người dùng nhập lại
                 networkData.saved_password = "";
                 passwordBox.hasSavedPassword = false;
@@ -104,7 +104,7 @@ Rectangle {
       }
 
       ButtonText {
-        name: lang?.wifi?.forget || "Quên"
+        name: lang?.wifi?.forget || "Forget"
         size: "xs"
         implicitHeight: ScalerService.s(30)
         visible: networkData.isConnected
@@ -127,7 +127,7 @@ Rectangle {
       TextField {
         id: wifiPassword
         Layout.fillWidth: true
-        placeholderText: networkData.security === "Open" ? (lang?.wifi?.no_password || "Không cần mật khẩu") : (lang?.wifi?.enter_password || "Nhập mật khẩu")
+        placeholderText: networkData.security === "Open" ? (lang?.wifi?.no_password || "No password required") : (lang?.wifi?.enter_password || "Enter password")
         echoMode: passwordBox.showPassword ? TextInput.Normal : TextInput.Password
         enabled: networkData.security !== "Open"
         font.family: "ComicShannsMono Nerd Font"
@@ -157,7 +157,7 @@ Rectangle {
       }
 
       ButtonText {
-        name: lang?.wifi?.connect || "Kết nối"
+        name: lang?.wifi?.connect || "Connect"
         size: "xs"
         implicitHeight: ScalerService.s(30)
         onClicked: {
@@ -166,7 +166,7 @@ Rectangle {
           if (password.length === 0 && networkData.security !== "Open" && networkData.security !== "--")
           {
             passwordBox.hasError = true;
-            passwordBox.errorMessage = lang?.wifi?.password_required || "Vui lòng nhập mật khẩu";
+            passwordBox.errorMessage = lang?.wifi?.password_required || "Please enter password";
             return;
           }
 
@@ -178,7 +178,7 @@ Rectangle {
           Qt.callLater(function () {
               if (wifiManager.connectionError) {
                 passwordBox.hasError = true;
-                passwordBox.errorMessage = lang?.wifi?.wrong_password || "Mật khẩu không đúng";
+                passwordBox.errorMessage = lang?.wifi?.wrong_password || "Wrong password";
               } else {
                 // Lưu mật khẩu sau khi kết nối thành công
                 if (password) {

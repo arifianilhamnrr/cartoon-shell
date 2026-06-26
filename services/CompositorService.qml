@@ -213,6 +213,10 @@ Singleton {
     Quickshell.execDetached(["sh", "-c", "systemctl suspend || loginctl suspend"]);
   }
 
+  function hibernate() {
+    Quickshell.execDetached(["sh", "-c", "systemctl hibernate || loginctl hibernate"]);
+  }
+
   function lock() {
     try {
       if (root.lockscreen) {

@@ -38,6 +38,20 @@ Item {
         color: theme.button.border
         width: Settings.appearance.enableBorder ? ScalerService.s(2) : 0
       }
+
+      Behavior on color {
+        ColorAnimation {
+          duration: ThemeService.themeTransitioning ? 0 : 320
+          easing.type: Easing.InOutCubic
+        }
+      }
+
+      Behavior on border.color {
+        ColorAnimation {
+          duration: ThemeService.themeTransitioning ? 0 : 320
+          easing.type: Easing.InOutCubic
+        }
+      }
       StackLayout {
         id: settingsStack
         anchors.fill: parent
@@ -70,20 +84,66 @@ Item {
           }
         }
 
-        // Network Settings
-        Com.Network {}
+        Loader {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          active: settingsStack.currentIndex === 2
+          source: "./Network.qml"
+          onLoaded: {
+            item.visible = Qt.binding(function () {
+              return settingsStack.currentIndex === 2;
+            });
+          }
+        }
 
-        // Audio Settings
-        Com.Audio {}
+        Loader {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          active: settingsStack.currentIndex === 3
+          source: "./Audio.qml"
+          onLoaded: {
+            item.visible = Qt.binding(function () {
+              return settingsStack.currentIndex === 3;
+            });
+          }
+        }
 
-        // Performance Settings
-        Com.Performance {}
+        Loader {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          active: settingsStack.currentIndex === 4
+          source: "./Performance.qml"
+          onLoaded: {
+            item.visible = Qt.binding(function () {
+              return settingsStack.currentIndex === 4;
+            });
+          }
+        }
 
-        // Shortcuts Settings
-        Com.Shortcuts {}
+        Loader {
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          active: settingsStack.currentIndex === 5
+          source: "./Shortcuts.qml"
+          onLoaded: {
+            item.visible = Qt.binding(function () {
+              return settingsStack.currentIndex === 5;
+            });
+          }
+        }
 
-        // System Settings
-        Com.System {}
+        Loader {
+          id: settingsSystem
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          active: settingsStack.currentIndex === 6
+          source: "./System.qml"
+          onLoaded: {
+            item.visible = Qt.binding(function () {
+              return settingsStack.currentIndex === 6;
+            });
+          }
+        }
       }
     }
   }

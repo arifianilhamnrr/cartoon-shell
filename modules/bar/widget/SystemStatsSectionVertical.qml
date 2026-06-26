@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.services
+import qs.commons
 import qs.components
 import qs.services.cpu
 import "." as Com
@@ -15,6 +16,7 @@ Item {
       id: cpuContainerVertical
       Layout.fillWidth: true
       Layout.fillHeight: true
+      visible: Settings.bar.cpu.active
 
       // Xoay container để hiển thị dọc
       Item {
@@ -60,6 +62,7 @@ Item {
       id: memoryContainerVertical
       Layout.fillWidth: true
       Layout.fillHeight: true
+      visible: Settings.bar.ram.active
       // Xoay container để hiển thị dọc
       Item {
         anchors.centerIn: parent

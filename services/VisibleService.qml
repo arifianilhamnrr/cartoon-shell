@@ -43,7 +43,9 @@ Singleton {
 
   property bool dashboard: false
 
-  property bool hasPanel: packagePanel || wifi || flag || mixer || music || launcher || dashboard || battery || ram || cpu || calendar || weather || bluetooth
+  property bool session: false
+
+  property bool hasPanel: packagePanel || wifi || flag || mixer || music || launcher || dashboard || battery || ram || cpu || calendar || weather || bluetooth || session || keybind
 
   property bool clock: Settings.clock.enableWidget // Giữ nguyên từ config
 
@@ -90,6 +92,9 @@ Singleton {
       break;
       case "dashboard":
       dashboard = true;
+      break;
+      case "session":
+      session = true;
       break;
       case "clock":
       clock = true;
@@ -404,6 +409,16 @@ Singleton {
         setting = false;
         break;
       }
+      case "session":
+      {
+        if (!session) {
+          closeAllPanels();
+          session = true;
+        } else {
+          session = false;
+        }
+        break;
+      }
     }
 
     panelChanged(panelName, getPanelVisible(panelName));
@@ -427,6 +442,8 @@ Singleton {
     fullsetting = false;
     packagePanel = false;
     filedialog = false;
+    keybind = false;
+    session = false;
     // Không đóng clock panel vì nó được điều khiển bởi config
   }
 
@@ -460,7 +477,11 @@ Singleton {
       case "clock":
       return clock;
       case "filedialog":
-      return filedialog
+      return filedialog;
+      case "session":
+      return session;
+      case "keybind":
+      return keybind;
       default:
       return false;
     }

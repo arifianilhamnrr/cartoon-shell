@@ -39,6 +39,11 @@ PanelWindow {
   }
   property var lang: LanguageService.translations
 
+  function formatActiveStreams(count) {
+    var template = lang?.mixer?.active_streams || "Active Streams: %{count}";
+    return template.replace("%{count}", String(count));
+  }
+
   anchors {
     // Anchor theo vị trí của bar
     left: Settings.bar.position === "left"
@@ -116,7 +121,7 @@ PanelWindow {
           spacing: ScalerService.s(8)
 
           CustomText {
-            name: lang.mixer.output_device
+            name: lang?.mixer?.output_device || "Output Device"
             isBold: true
             textColor: theme.button.text
             Layout.fillWidth: true
@@ -148,7 +153,7 @@ PanelWindow {
 
           // Section header
           CustomText {
-            name: lang.mixer.application_streams
+            name: lang?.mixer?.application_streams || "Application Audio Streams"
             isBold: true
             Layout.fillWidth: true
             Layout.leftMargin: ScalerService.s(8)
@@ -167,6 +172,7 @@ PanelWindow {
               anchors.margins: ScalerService.s(8)
 
               Repeater {
+                id: streamRepeater
                 model: linkTracker.linkGroups
 
                 Com.MixerEntry {
@@ -178,8 +184,8 @@ PanelWindow {
 
               // Empty state
               Label {
-                visible: linkTracker.linkGroups.count === 0
-                text: lang.mixer.no_streams
+                visible: streamRepeater.count === 0
+                text: lang?.mixer?.no_streams || "No active audio streams"
                 color: theme.primary.dim_foreground
                 font.italic: true
                 horizontalAlignment: Text.AlignHCenter
@@ -202,7 +208,7 @@ PanelWindow {
           color: "transparent"
           CustomText{
             anchors.centerIn: parent
-            name: `Active streams: ${linkTracker.linkGroups.count}`
+            name: root.formatActiveStreams(streamRepeater.count)
             size: "small"
             textColor: theme.primary.dim_foreground
           }

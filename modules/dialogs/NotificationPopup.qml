@@ -1,300 +1,416 @@
 import QtQuick
-import QtQuick.Window
+import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.Notifications
+import Quickshell.Widgets
 import qs.services
 import qs.commons
+import qs.components
 
 PanelWindow {
   id: root
 
-  implicitWidth: ScalerService.s(430)
+  readonly property int cardWidth: ScalerService.s(300)
+  readonly property int cardMinHeight: ScalerService.s(56)
+  readonly property int cardMaxHeight: ScalerService.s(132)
+  readonly property int bodyMaxLines: 3
+  readonly property int cardSpacing: ScalerService.s(8)
+  readonly property int bottomMargin: ScalerService.s(110)
+  readonly property int contentMargin: ScalerService.s(12)
+  readonly property int iconSize: ScalerService.s(22)
+  readonly property int titleSize: ScalerService.s(13)
+  readonly property int bodySize: ScalerService.s(11)
+  readonly property int appSize: ScalerService.s(10)
+  readonly property int progressHeight: ScalerService.s(3)
+
+  implicitWidth: cardWidth
   anchors {
-    top: true
+    bottom: true
   }
   margins {
-    top: ScalerService.s(10)
+    bottom: bottomMargin
   }
   exclusiveZone: 0
   visible: notificationModel.count > 0
   color: "transparent"
+  mask: Region {}
 
-  // Cấu hình kích thước cố định
-  property int maxNotifications: 4
-  property int notificationHeight: ScalerService.s(100)
-  property int notificationSpacing: ScalerService.s(10)
-  property int containerMargin: ScalerService.s(10)
+  property int maxNotifications: 1
+  property int defaultDismissMs: 5000
+  property int lowDismissMs: 4000
+  property int criticalDismissMs: 8000
+  property int residentDismissMs: 10000
+  property int fadeInMs: 280
+  property int fadeOutMs: 280
+  property var pendingNotification: null
 
-  // Tính toán chiều cao dựa trên số lượng thông báo
-  implicitHeight: containerMargin * 2 + notificationList.contentHeight
+  property var notificationRefs: ({})
+
+  function dismissTimeoutFor(notification) {
+    if (notification.expireTimeout > 0)
+      return Math.round(notification.expireTimeout * 1000);
+
+    if (notification.resident)
+      return residentDismissMs;
+
+    switch (notification.urgency) {
+      case NotificationUrgency.Critical:
+      return criticalDismissMs;
+      case NotificationUrgency.Low:
+      return lowDismissMs;
+      default:
+      return defaultDismissMs;
+    }
+  }
+
+  function urgencyColor(urgency) {
+    switch (urgency) {
+      case NotificationUrgency.Critical:
+      return theme.normal.red;
+      case NotificationUrgency.Low:
+      return theme.normal.green;
+      default:
+      return theme.normal.blue;
+    }
+  }
+
+  function clearNotificationRef(notificationId) {
+    const nextRefs = Object.assign({}, notificationRefs);
+    delete nextRefs[notificationId];
+    notificationRefs = nextRefs;
+  }
+
+  function expireNotificationById(notificationId) {
+    const notification = notificationRefs[notificationId];
+    if (notification)
+      notification.expire();
+    clearNotificationRef(notificationId);
+  }
+
+  function dismissNotificationById(notificationId) {
+    const notification = notificationRefs[notificationId];
+    if (notification)
+      notification.dismiss();
+    clearNotificationRef(notificationId);
+  }
+
+  function appendNotification(notification) {
+    const dismissMs = dismissTimeoutFor(notification);
+    const iconSource = notification.image || notification.appIcon || "";
+
+    notificationRefs = {
+      [notification.id]: notification
+    };
+
+    notificationModel.append({
+      notificationId: notification.id,
+      appName: notification.appName || "",
+      summary: notification.summary || "",
+      body: notification.body || "",
+      urgency: notification.urgency,
+      dismissMs: dismissMs,
+      iconSource: iconSource
+    });
+
+    notification.tracked = true;
+  }
+
+  function fadeOutCurrentNotification() {
+    const currentItem = notificationList.itemAtIndex(0);
+    if (currentItem && typeof currentItem.removeNotification === "function") {
+      currentItem.removeNotification(true);
+      return true;
+    }
+
+    return false;
+  }
+
+  function queueOrShowNotification(notification) {
+    notification.tracked = true;
+
+    if (notificationModel.count > 0) {
+      pendingNotification = notification;
+
+      if (!fadeOutCurrentNotification()) {
+        notificationModel.clear();
+        notificationRefs = {};
+        pendingNotification = null;
+        appendNotification(notification);
+      }
+
+      return;
+    }
+
+    appendNotification(notification);
+  }
+
+  function showPendingNotification() {
+    if (!pendingNotification)
+      return;
+
+    const notification = pendingNotification;
+    pendingNotification = null;
+    appendNotification(notification);
+  }
+
+  implicitHeight: notificationList.height
 
   Behavior on implicitHeight {
     NumberAnimation {
-      duration: 10
+      duration: 180
       easing.type: Easing.OutCubic
     }
   }
 
-  // Container chính cho popup
-  Rectangle {
-    anchors.fill: parent
-    color: "transparent"
+  ListView {
+    id: notificationList
+    width: cardWidth
+    height: Math.min(
+      contentHeight,
+      maxNotifications * (cardMaxHeight + cardSpacing) - cardSpacing
+    )
+    spacing: cardSpacing
+    clip: true
+    interactive: false
+    verticalLayoutDirection: ListView.BottomToTop
 
-    // Danh sách notification
-    ListView {
-      id: notificationList
-      anchors.fill: parent
-      anchors.margins: ScalerService.s(10)
-      spacing: ScalerService.s(10)
-      clip: true
-      model: ListModel {
-        id: notificationModel
+    model: ListModel {
+      id: notificationModel
+    }
+
+    Behavior on height {
+      NumberAnimation {
+        duration: 180
+        easing.type: Easing.OutCubic
       }
-      interactive: false
+    }
 
-      // Giới hạn chiều cao tối đa
-      property int maxHeight: maxNotifications * (notificationHeight + notificationSpacing)
-      height: Math.min(contentHeight, maxHeight)
+    delegate: Rectangle {
+      id: notificationDelegate
 
-      Behavior on height {
+      required property int index
+      required property var notificationId
+      required property string appName
+      required property string summary
+      required property string body
+      required property int urgency
+      required property int dismissMs
+      required property string iconSource
+
+      width: notificationList.width
+      height: Math.max(
+        cardMinHeight,
+        Math.min(
+          cardMaxHeight,
+          contentColumn.implicitHeight + contentMargin * 2 + progressHeight + ScalerService.s(8)
+        )
+      )
+      border.color: theme.button.border
+      radius: ScalerService.s(Settings.appearance.radius2)
+      border.width: Settings.appearance.enableBorder ? ScalerService.s(2) : 0
+      color: theme.primary.background
+
+      opacity: 0
+      property bool entered: false
+
+      Behavior on opacity {
         NumberAnimation {
-          duration: 10
+          duration: notificationDelegate.entered ? root.fadeInMs : root.fadeOutMs
           easing.type: Easing.OutCubic
         }
       }
 
-      delegate: Rectangle {
-        id: notificationDelegate
-        width: notificationList.width
-        height: isExpanded ? contentColumn.implicitHeight + ScalerService.s(24) : notificationHeight
-        border.color: theme.button.border
-        radius: ScalerService.s(Settings.appearance.radius1)
-        border.width: Settings.appearance.enableBorder ? ScalerService.s(3) : 0
-        color: theme.primary.background
+      Component.onCompleted: {
+        entered = true;
+        opacity = 1;
+      }
 
-        property bool isExpanded: false
-        property bool hasLongContent: false
-
-        Behavior on height {
-          NumberAnimation {
-            duration: 20
-            easing.type: Easing.OutCubic
+      HoverHandler {
+        onHoveredChanged: {
+          if (hovered) {
+            autoDismiss.stop();
+            dismissAnim.stop();
+          } else if (!autoDismiss.running && notificationDelegate.opacity > 0) {
+            autoDismiss.restart();
+            dismissAnim.start();
           }
         }
+      }
 
-        // Hiệu ứng mờ dần khi xóa
-        opacity: 1
-        Behavior on opacity {
-          NumberAnimation {
-            duration: 200
-          }
+      Timer {
+        id: autoDismiss
+        interval: dismissMs
+        running: true
+        repeat: false
+        onTriggered: removeNotification(true)
+      }
+
+      NumberAnimation {
+        id: dismissAnim
+        target: progressFill
+        property: "fillRatio"
+        from: 1
+        to: 0
+        duration: dismissMs
+        running: true
+        easing.type: Easing.Linear
+      }
+
+      ColumnLayout {
+        id: contentColumn
+        anchors {
+          left: parent.left
+          right: parent.right
+          top: parent.top
+          margins: contentMargin
         }
+        spacing: ScalerService.s(4)
 
-        // Timer tự động xóa
-        Timer {
-          id: autoDismiss
-          interval: model.timeout > 0 ? model.timeout * 1000 : 10000
-          onTriggered: removeNotification()
-        }
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: ScalerService.s(8)
 
-        Column {
-          id: contentColumn
-          anchors.fill: parent
-          anchors.margins: ScalerService.s(12)
-          spacing: ScalerService.s(6)
+          Item {
+            Layout.preferredWidth: iconSize
+            Layout.preferredHeight: iconSize
+            Layout.alignment: Qt.AlignTop
 
-          // Header với app icon và tên
-          Row {
-            width: parent.width
-            spacing: ScalerService.s(8)
-            height: ScalerService.s(24)
+            Image {
+              anchors.fill: parent
+              visible: iconSource !== ""
+              source: iconSource
+              fillMode: Image.PreserveAspectFit
+              smooth: true
+              asynchronous: true
+            }
 
             Rectangle {
-              width: ScalerService.s(24)
-              height: ScalerService.s(24)
-              radius: ScalerService.s(12)
-              color: {
-                switch (model.urgency) {
-                  case NotificationUrgency.Critical:
-                  return theme.normal.red;
-                  case NotificationUrgency.Normal:
-                  return theme.normal.blue;
-                  case NotificationUrgency.Low:
-                  return theme.normal.green;
-                  default:
-                  return theme.button.background;
-                }
-              }
+              anchors.fill: parent
+              visible: iconSource === ""
+              radius: iconSize / 2
+              color: root.urgencyColor(urgency)
 
               Text {
                 anchors.centerIn: parent
-                text: model.appName ? model.appName.charAt(0).toUpperCase() : "N"
+                text: appName ? appName.charAt(0).toUpperCase() : "N"
                 font.bold: true
                 color: theme.primary.background
-                font.pixelSize: ScalerService.s(12)
+                font.pixelSize: ScalerService.s(10)
+                font.family: Settings.appearance.font
               }
+            }
+          }
+
+          ColumnLayout {
+            Layout.fillWidth: true
+            spacing: ScalerService.s(2)
+
+            Text {
+              Layout.fillWidth: true
+              text: summary || "Notification"
+              color: theme.primary.foreground
+              font.family: Settings.appearance.font
+              font.pixelSize: titleSize
+              font.bold: true
+              wrapMode: Text.Wrap
+              maximumLineCount: 2
+              elide: Text.ElideRight
             }
 
             Text {
-              text: model.appName || "Unknown App"
-              font.bold: true
-              color: theme.button.text
+              Layout.fillWidth: true
+              visible: body !== ""
+              text: body
+              color: theme.primary.dim_foreground
+              font.family: Settings.appearance.font
+              font.pixelSize: bodySize
+              wrapMode: Text.Wrap
+              maximumLineCount: bodyMaxLines
               elide: Text.ElideRight
-              width: parent.width - (hasLongContent ? ScalerService.s(104) : ScalerService.s(80))
-              font.pixelSize: ScalerService.s(12)
+              lineHeight: 1.25
             }
 
-            // Expand button (only show if content is long)
-            MouseArea {
-              width: ScalerService.s(24)
-              height: ScalerService.s(24)
-              anchors.verticalCenter: parent.verticalCenter
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              visible: hasLongContent
-              onClicked: isExpanded = !isExpanded
-
-              Rectangle {
-                anchors.fill: parent
-                radius: ScalerService.s(12)
-                color: parent.containsMouse ? theme.button.background_select : "transparent"
-
-                Text {
-                  anchors.centerIn: parent
-                  text: isExpanded ? "▲" : "▼"
-                  font.pixelSize: ScalerService.s(10)
-                  color: parent.parent.containsMouse ? theme.primary.foreground : theme.primary.dim_foreground
-                  font.bold: true
-                }
-              }
-            }
-
-            // Close button
-            MouseArea {
-              width: ScalerService.s(24)
-              height: ScalerService.s(24)
-              anchors.verticalCenter: parent.verticalCenter
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: removeNotification()
-
-              Rectangle {
-                anchors.fill: parent
-                radius: ScalerService.s(12)
-                color: parent.containsMouse ? theme.normal.red : "transparent"
-
-                Text {
-                  anchors.centerIn: parent
-                  text: "×"
-                  font.pixelSize: ScalerService.s(16)
-                  color: parent.parent.containsMouse ? theme.primary.foreground : theme.primary.dim_foreground
-                  font.bold: true
-                }
-              }
-            }
-          }
-
-          // Tiêu đề
-          Text {
-            id: summaryText
-            width: parent.width
-            text: model.summary
-            font.bold: true
-            font.pixelSize: ScalerService.s(14)
-            wrapMode: Text.WordWrap
-            color: theme.primary.foreground
-            maximumLineCount: isExpanded ? 2 : 1
-            elide: Text.ElideRight
-          }
-
-          // Nội dung
-          Text {
-            id: bodyText
-            width: parent.width
-            text: model.body
-            font.pixelSize: ScalerService.s(12)
-            wrapMode: Text.WordWrap
-            color: theme.primary.foreground
-            maximumLineCount: isExpanded ? 5 : 2
-            elide: Text.ElideRight
-
-            onTruncatedChanged: {
-              if (!isExpanded) {
-                hasLongContent = truncated;
-              }
-            }
-
-            Component.onCompleted: {
-              Qt.callLater(function () {
-                  if (!isExpanded) {
-                    hasLongContent = truncated;
-                  }
-              });
-            }
-          }
-
-          // Actions (nếu có)
-          Flow {
-            width: parent.width
-            spacing: ScalerService.s(5)
-            visible: model.actions && model.actions.length > 0
-
-            Repeater {
-              model: model.actions || []
-
-              Rectangle {
-                height: ScalerService.s(26)
-                width: Math.min(actionText.width + ScalerService.s(16), ScalerService.s(120))
-                radius: ScalerService.s(5)
-                color: {
-                  switch (parent.parent.parent.model.urgency) {
-                    case NotificationUrgency.Critical:
-                    return theme.normal.red;
-                    case NotificationUrgency.Normal:
-                    return theme.normal.blue;
-                    case NotificationUrgency.Low:
-                    return theme.normal.green;
-                    default:
-                    return theme.button.background;
-                  }
-                }
-
-                Text {
-                  id: actionText
-                  anchors.centerIn: parent
-                  text: modelData.text || modelData.identifier
-                  color: theme.primary.foreground
-                  font.pixelSize: ScalerService.s(10)
-                  font.bold: true
-                  elide: Text.ElideRight
-                }
-
-                MouseArea {
-                  anchors.fill: parent
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: {
-                    modelData.invoke();
-                    removeNotification();
-                  }
-                }
-              }
+            Text {
+              Layout.fillWidth: true
+              visible: appName !== ""
+              text: appName
+              color: theme.primary.dim_foreground
+              font.family: Settings.appearance.font
+              font.pixelSize: appSize
+              opacity: 0.75
+              elide: Text.ElideRight
+              maximumLineCount: 1
             }
           }
         }
+      }
 
-        function removeNotification() {
-          notificationDelegate.opacity = 0;
-          notificationTimer.start();
+      Rectangle {
+        id: progressTrack
+        anchors {
+          left: parent.left
+          right: parent.right
+          bottom: parent.bottom
+          leftMargin: contentMargin
+          rightMargin: contentMargin
+          bottomMargin: ScalerService.s(6)
         }
+        height: progressHeight
+        radius: progressHeight / 2
+        color: theme.primary.dim_background
 
-        Timer {
-          id: notificationTimer
-          interval: 200
-          onTriggered: notificationModel.remove(index)
+        Rectangle {
+          id: progressFill
+          anchors {
+            left: parent.left
+            top: parent.top
+            bottom: parent.bottom
+          }
+          property real fillRatio: 1
+          width: parent.width * Math.max(0, Math.min(fillRatio, 1))
+          radius: parent.radius
+          color: root.urgencyColor(urgency)
+
+          Behavior on width {
+            NumberAnimation {
+              duration: 120
+              easing.type: Easing.OutCubic
+            }
+          }
         }
+      }
 
-        Component.onCompleted: {
-          autoDismiss.restart();
+      MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onClicked: function (mouse) {
+          if (mouse.button === Qt.RightButton)
+            removeNotification(false);
+        }
+      }
+
+      function removeNotification(expired) {
+        if (removeTimer.running)
+          return;
+
+        autoDismiss.stop();
+        dismissAnim.stop();
+        if (expired)
+          root.expireNotificationById(notificationId);
+        else
+          root.dismissNotificationById(notificationId);
+        entered = false;
+        notificationDelegate.opacity = 0;
+        removeTimer.start();
+      }
+
+      Timer {
+        id: removeTimer
+        interval: root.fadeOutMs
+        onTriggered: {
+          notificationModel.remove(index);
+          Qt.callLater(root.showPendingNotification);
         }
       }
     }
@@ -307,24 +423,7 @@ PanelWindow {
     inlineReplySupported: true
 
     onNotification: function (notification) {
-      notificationModel.insert(0, {
-          id: notification.id,
-          appName: notification.appName || "",
-          summary: notification.summary,
-          body: notification.body,
-          urgency: notification.urgency,
-          timeout: notification.expireTimeout,
-          actions: notification.actions
-      });
-
-      // Giữ tối đa 4 notification
-      if (notificationModel.count > maxNotifications) {
-        // Xóa notification cũ nhất
-        notificationModel.remove(maxNotifications);
-      }
-
-      // Giữ thông báo
-      notification.tracked = true;
+      root.queueOrShowNotification(notification);
     }
   }
 }

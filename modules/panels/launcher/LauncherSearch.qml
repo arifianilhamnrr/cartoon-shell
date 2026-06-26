@@ -33,7 +33,7 @@ Rectangle {
     TextField {
       id: searchField
       Layout.fillWidth: true
-      placeholderText: "Tìm kiếm ứng dụng..."
+      placeholderText: "Search applications..."
       palette.text: theme.primary.foreground       // màu chữ chính
       palette.placeholderText: theme.primary.dim_foreground  // sửa thành dim_foreground
       font.pixelSize: ScalerService.s(14)

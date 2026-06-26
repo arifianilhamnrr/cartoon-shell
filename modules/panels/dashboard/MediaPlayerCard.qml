@@ -11,7 +11,7 @@ import qs.commons
 
 Item {
   id: root
-  property var mprisPlayer: Mpris.players.values.length > 0 ? Mpris.players.values[0] : null
+  readonly property var mprisPlayer: Players.mprisPlayer
   property string currentSong: "No song playing"
   property string currentArtist: "Unknown Artist"
   property real animationProgress: 0

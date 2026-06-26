@@ -40,7 +40,7 @@ Item {
   }
 
   CustomText {
-    name: lang?.weather?.title || "Thời Tiết"
+    name: lang?.weather?.title || "Weather"
     size: "large"
     isBold: true
     anchors.centerIn: parent

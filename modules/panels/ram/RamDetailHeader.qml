@@ -11,13 +11,11 @@ Item {
   CustomText{
     anchors.centerIn: parent
 
-    name: lang?.ram?.panel_title || "Quản lí Ram"
+    name: lang?.ram?.panel_title || "RAM Manager"
     size: "large"
     isBold: true
-    opacity: root.animationProgress > 0.1 ? 1 : 0
   }
   CloseButton{
     onClicked: VisibleService.togglePanel("ram")
-    opacity: root.animationProgress > 0.15 ? 1 : 0
   }
 }

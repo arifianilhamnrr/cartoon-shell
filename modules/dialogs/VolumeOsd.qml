@@ -106,7 +106,7 @@ Scope {
               Layout.fillWidth: true
               Layout.fillHeight: true
               CustomText {
-                name: " " + (lang?.volume?.title || "Âm thanh")
+                name: " " + (lang?.volume?.title || "Volume")
                 anchors.margins: ScalerService.s(10)
                 anchors.top: parent.top
                 anchors.right: parent.right

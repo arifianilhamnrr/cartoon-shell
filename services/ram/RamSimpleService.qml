@@ -13,10 +13,11 @@ Singleton {
   property var ramHistory: []
 
   property int maxHistoryLength: 50
+  property bool useSimpleCalculation: true
 
   Process {
     id: ramProcess
-    running: useSimpleCalculation
+    running: root.useSimpleCalculation
 
     command: ["bash", "-c", "awk '/MemTotal/{t=$2}/MemFree/{f=$2}/Buffers/{b=$2}/^Cached:/{c=$2} END{print int(((t-f-b-c)/t)*100)}' /proc/meminfo"]
 

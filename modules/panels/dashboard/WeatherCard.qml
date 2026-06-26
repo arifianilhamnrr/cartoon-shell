@@ -77,7 +77,7 @@ Item {
           spacing: ScalerService.s(5)
 
           CustomText {
-            name: `${WeatherService.dataModel.current.temp_c}°C` || "Đang tải..."
+            name: `${WeatherService.dataModel.current.temp_c}°C` || "Loading..."
             Layout.alignment: Qt.AlignVCenter
             size: "2xl"
             isBold: true

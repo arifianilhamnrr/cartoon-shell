@@ -10,7 +10,7 @@ Singleton {
   // Properties
   property string apiKey: Settings.weather.keyApi
   property string location: Settings.weather.location
-  property string lang: Settings.general.lang || "vi"
+  property string lang: Settings.general.lang || "en"
   property string errorMessage: ""
   property var dataModel: null
 
@@ -67,14 +67,14 @@ Singleton {
   }
   function updateWeather() {
     if (root.apiKey === "" || root.apiKey === undefined) {
-      root.errorMessage = "Vui lòng nhập API key"
+      root.errorMessage = "Please enter API key"
       root.temperature = "No API"
-      root.condition = "Chưa có key"
+      root.condition = "No API key"
       return
     }
 
     if (!root.location || root.location === "") {
-      root.errorMessage = "Vui lòng nhập địa điểm"
+      root.errorMessage = "Please enter location"
       return
     }
 

@@ -134,4 +134,5 @@ ColumnLayout {
       root.changeStyle("volume", style)
     }
   }
+
 }

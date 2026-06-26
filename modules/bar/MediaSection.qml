@@ -15,6 +15,8 @@ Rectangle {
   border.color: theme.button.border
   border.width: Settings.appearance.enableBorder ? ScalerService.s(3) : 0
   radius: ScalerService.s(Settings.appearance.radius2)
+  width: root.animationProgress > 0.2 ? parent.width : 0
+  height: root.animationProgress > 0.2 ? parent.height : 0
   anchors.centerIn: parent
   property real animationProgress: 0
   SequentialAnimation on animationProgress {
@@ -26,16 +28,14 @@ Rectangle {
       easing.type: Easing.Linear
     }
   }
-  implicitWidth: root.animationProgress > 0.2 ? parent.width : 0
-  implicitHeight: root.animationProgress > 0.2 ? parent.height : 0
-  Behavior on implicitHeight {
+  Behavior on height {
     NumberAnimation {
       id: heightAnim
       duration: 500
       easing.type: Easing.OutCubic
     }
   }
-  Behavior on implicitWidth {
+  Behavior on width {
     NumberAnimation {
       id: widthAnim
       duration: 500
@@ -57,7 +57,6 @@ Rectangle {
   // UI Layout
   Loader {
     anchors.fill: parent
-    anchors.margins: isVertical ? ScalerService.s(8) : ScalerService.s(10)
     sourceComponent: isVertical ? verticalLayout : horizontalLayout
   }
 

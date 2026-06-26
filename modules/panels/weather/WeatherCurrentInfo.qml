@@ -32,7 +32,7 @@ RowLayout {
     RowLayout {
       spacing: 0
       CustomText {
-        name: `${WeatherService.dataModel.current.temp_c}` || "Đang tải..."
+        name: `${WeatherService.dataModel.current.temp_c}` || "Loading..."
         Layout.alignment: Qt.AlignVCenter
         size: "2xl"
         isBold: true

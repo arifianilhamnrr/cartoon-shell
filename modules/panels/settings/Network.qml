@@ -1,63 +1,64 @@
-// components/Settings/NetworkSettings.qml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.services
+import qs.components
+import "./network" as Com
+import "./" as Bar
 
 Item {
-  ScrollView {
+  id: root
+  property int currentTab: 0
+  property real animationProgress: 0
+
+  SequentialAnimation on animationProgress {
+    running: true
+    NumberAnimation {
+      from: 0
+      to: 1
+      duration: 500
+      easing.type: Easing.Linear
+    }
+  }
+
+  ColumnLayout {
     anchors.fill: parent
-    anchors.margins: ScalerService.s(20)
-    clip: true
+    spacing: ScalerService.s(10)
 
-    ColumnLayout {
-      width: parent.width - ScalerService.s(40)
-      spacing: ScalerService.s(20)
+    Bar.TopNavigationBar {
+      animationProgress: root.animationProgress
+      indexCategoegory: 2
+      onCurrentTab: function (index) {
+        root.currentTab = index;
+      }
+    }
 
-      Text {
-        text: "Network Settings"
-        color: theme.primary.foreground
-        font.pixelSize: ScalerService.s(24)
-        font.bold: true
-        font.family: "ComicShannsMono Nerd Font"
-        Layout.topMargin: ScalerService.s(10)
+    StackLayout {
+      Layout.fillWidth: true
+      Layout.fillHeight: true
+      currentIndex: root.currentTab
+
+      Loader {
+        Layout.fillWidth: true
+        Layout.fillHeight: true
+        active: root.currentTab === 0
+        source: "./network/WifiSettings.qml"
+        onLoaded: {
+          item.visible = Qt.binding(function () {
+            return root.currentTab === 0;
+          });
+        }
       }
 
-      Rectangle {
+      Loader {
         Layout.fillWidth: true
-        height: ScalerService.s(1)
-        color: theme.primary.foreground
-      }
-
-      // Thông báo phần đã bị xóa
-      Rectangle {
-        Layout.fillWidth: true
-        Layout.preferredHeight: ScalerService.s(100)
-        radius: ScalerService.s(8)
-        color: theme.primary.background
-        border.color: theme.normal.black
-        border.width: ScalerService.s(1)
-
-        Column {
-          anchors.centerIn: parent
-          spacing: ScalerService.s(10)
-
-          Text {
-            text: "Network Settings Content"
-            color: theme.primary.foreground
-            font.pixelSize: ScalerService.s(16)
-            font.bold: true
-            font.family: "ComicShannsMono Nerd Font"
-          }
-
-          Text {
-            text: "Network information and controls have been removed."
-            color: theme.primary.dim_foreground
-            font.pixelSize: ScalerService.s(12)
-            font.family: "ComicShannsMono Nerd Font"
-            horizontalAlignment: Text.AlignHCenter
-            width: parent.width
-          }
+        Layout.fillHeight: true
+        active: root.currentTab === 1
+        source: "./network/BluetoothSettings.qml"
+        onLoaded: {
+          item.visible = Qt.binding(function () {
+            return root.currentTab === 1;
+          });
         }
       }
     }

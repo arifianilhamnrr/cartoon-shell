@@ -74,7 +74,7 @@ Item {
           ColumnLayout {
             spacing: ScalerService.s(1)
             CustomText {
-              name: `${WeatherService.dataModel.current.temp_c}°C` || "Đang tải..."
+              name: `${WeatherService.dataModel.current.temp_c}°C` || "Loading..."
               Layout.alignment: Qt.AlignHCenter
               size: "xs"
             }

@@ -24,14 +24,14 @@ Rectangle {
     }
 
     Text {
-      text: lang?.wifi?.disabled || "WiFi đang tắt"
+      text: lang?.wifi?.disabled || "WiFi is off"
       font.pixelSize: ScalerService.s(18)
       color: theme.primary.foreground
       font.family: "ComicShannsMono Nerd Font"
     }
 
     Text {
-      text: lang?.wifi?.turn_on || "Bật WiFi để xem mạng khả dụng"
+      text: lang?.wifi?.turn_on || "Turn on WiFi to see available networks"
       font.pixelSize: ScalerService.s(14)
       color: theme.primary.dim_foreground
       font.family: "ComicShannsMono Nerd Font"

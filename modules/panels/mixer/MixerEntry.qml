@@ -94,7 +94,9 @@ ColumnLayout {
 
       onClicked: node.audio.muted = !node.audio.muted
 
-      ToolTip.text: node.audio.muted ? lang.entry.muted : lang.entry.mute
+      ToolTip.text: node.audio.muted
+        ? (lang?.entry?.muted || "Muted")
+        : (lang?.entry?.mute || "Mute")
       ToolTip.visible: hovered
     }
   }

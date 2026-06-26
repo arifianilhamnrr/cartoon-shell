@@ -13,7 +13,7 @@ PanelWindow {
   property var sizes: currentSizes.batteryDetailPanel || {}
 
   width: ScalerService.s(450)
-  height: ScalerService.s(400)
+  height: ScalerService.s(600)
   anchors {
     // Anchor theo vị trí của bar
     left: Settings.bar.position === "left"
@@ -42,9 +42,8 @@ PanelWindow {
       anchors.margins: ScalerService.s(16)
       spacing: ScalerService.s(16)
 
-      // Header
       Text {
-        text: "🔋 Battery Details"
+        text: LanguageService.translations?.battery_power?.details_title || "Battery Details"
         font.family: "ComicShannsMono Nerd Font"
         color: theme.primary.foreground
         font.bold: true

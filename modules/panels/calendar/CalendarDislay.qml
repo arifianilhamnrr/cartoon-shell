@@ -36,7 +36,7 @@ Rectangle {
 
   property var monthLabels: {
     const m = lang?.dateFormat?.month;
-    return m ? [m.january || "Tháng 1", m.february || "Tháng 2", m.march || "Tháng 3", m.april || "Tháng 4", m.may || "Tháng 5", m.june || "Tháng 6", m.july || "Tháng 7", m.august || "Tháng 8", m.september || "Tháng 9", m.october || "Tháng 10", m.november || "Tháng 11", m.december || "Tháng 12"] : ["Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4", "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12"];
+    return m ? [m.january || "January", m.february || "February", m.march || "March", m.april || "April", m.may || "May", m.june || "June", m.july || "July", m.august || "August", m.september || "September", m.october || "October", m.november || "November", m.december || "December"] : ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   }
 
   signal dateSelected(date selectedDate)

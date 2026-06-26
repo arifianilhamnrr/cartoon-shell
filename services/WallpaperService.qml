@@ -147,6 +147,74 @@ Singleton {
     }
   }
 
+  function normalizeWallpaperPath(path) {
+    if (!path)
+      return "";
+    return FileUtils.trimFileProtocol(path.toString());
+  }
+
+  function pickWallpaperFromList(screenName, randomPick) {
+    const list = getWallpapersList(screenName);
+    if (!list || list.length === 0)
+      return "";
+
+    const current = normalizeWallpaperPath(getWallpaper(screenName));
+    if (list.length === 1)
+      return list[0];
+
+    if (randomPick) {
+      let candidate = list[0];
+      for (let attempt = 0; attempt < 8; attempt++) {
+        candidate = list[Math.floor(Math.random() * list.length)];
+        if (normalizeWallpaperPath(candidate) !== current)
+          break;
+      }
+      return candidate;
+    }
+
+    let index = -1;
+    for (let i = 0; i < list.length; i++) {
+      if (normalizeWallpaperPath(list[i]) === current) {
+        index = i;
+        break;
+      }
+    }
+
+    if (index < 0 && current) {
+      const currentName = current.split("/").pop();
+      for (let i = 0; i < list.length; i++) {
+        if (list[i].split("/").pop() === currentName) {
+          index = i;
+          break;
+        }
+      }
+    }
+
+    return list[(Math.max(index, 0) + 1) % list.length];
+  }
+
+  function cycleWallpaper(screenName, randomPick) {
+    if (!isInitialized)
+      init();
+
+    const primaryScreen = screenName
+      || (Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");
+    if (!primaryScreen)
+      return false;
+
+    const nextPath = pickWallpaperFromList(primaryScreen, randomPick);
+    if (!nextPath)
+      return false;
+
+    if (Settings.wallpaper.setWallpaperOnAllMonitors) {
+      changeWallpaper(nextPath);
+    } else {
+      changeWallpaper(nextPath, primaryScreen);
+    }
+
+    return true;
+  }
+
   function _setWallpaper(screenName, path) {
     if (!path)
     return;
@@ -384,4 +452,5 @@ Singleton {
       }
     }
   }
+
 }

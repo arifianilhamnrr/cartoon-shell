@@ -55,22 +55,30 @@ PanelWindow {
   objectName: "BluetoothPanel"
 
   property var adapter: Bluetooth.defaultAdapter
-  property int connectedCount: {
-    let count = 0;
-    for (let i = 0; i < Bluetooth.devices.length; i++) {
-      if (Bluetooth.devices[i].connected)
-      count++;
+  property int connectedCount: 0
+
+  function refreshConnectedCount() {
+    var values = Bluetooth.devices ? Bluetooth.devices.values : null;
+    if (!values) {
+      root.connectedCount = 0;
+      return;
     }
-    return count;
+
+    var count = 0;
+    for (var i = 0; i < values.length; i++) {
+      if (values[i].connected)
+        count++;
+    }
+    root.connectedCount = count;
   }
 
   property bool isDiscoverable: adapter ? adapter.discoverable : false
   property bool isPairable: adapter ? adapter.pairable : true
 
-  // Timer to automatically stop scanning after 30 seconds
+  // Timer to automatically stop scanning after 10 seconds
   Timer {
     id: scanTimer
-    interval: 30000
+    interval: 10000
     onTriggered: {
       if (adapter && adapter.discovering) {
         adapter.discovering = false;
@@ -195,7 +203,7 @@ PanelWindow {
           }
 
           Text {
-            text: lang?.bluetooth?.disabled || "Bluetooth đã tắt"
+            text: lang?.bluetooth?.disabled || "Bluetooth is off"
             color: theme.primary.foreground
             font.pixelSize: ScalerService.s(16)
             font.weight: Font.Medium
@@ -203,7 +211,7 @@ PanelWindow {
           }
 
           Text {
-            text: lang?.bluetooth?.turn_on || "Bật Bluetooth để kết nối với thiết bị"
+            text: lang?.bluetooth?.turn_on || "Turn on Bluetooth to connect to devices"
             color: theme.primary.dim_foreground
             font.pixelSize: ScalerService.s(12)
             anchors.horizontalCenter: parent.horizontalCenter
@@ -234,13 +242,15 @@ PanelWindow {
 
   // Monitor device list changes
   Connections {
-    target: Bluetooth
-    function onDevicesChanged() {
+    target: Bluetooth.devices
+    enabled: !!Bluetooth.devices
+    function onValuesChanged() {
+      root.refreshConnectedCount();
     }
   }
 
   Component.onCompleted: {
-    // Ensure adapter is pairable on startup
+    root.refreshConnectedCount();
     if (adapter && adapter.enabled) {
       adapter.pairable = true;
     }

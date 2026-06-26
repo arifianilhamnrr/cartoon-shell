@@ -1,40 +1,53 @@
-// components/Settings/[Tên]Settings.qml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.services
+import qs.components
+import qs.commons
+import qs.services.cpu
+import qs.services.ram
+import "./performance" as PerfCom
 
 Item {
+  id: root
+
   ScrollView {
     anchors.fill: parent
-    anchors.margins: ScalerService.s(20)
     clip: true
+    ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
     ColumnLayout {
-      width: parent.width
-      spacing: ScalerService.s(15)
+      width: parent.parent.width - ScalerService.s(40)
+      spacing: ScalerService.s(16)
 
-      Text {
-        text: "Performance Settings"
-        color: theme.primary.foreground
-        font.pixelSize: ScalerService.s(24)
-        font.bold: true
-        Layout.topMargin: ScalerService.s(10)
+      HeaderSettings {
+        name: lang?.performance_settings?.title || lang?.settings?.performance || "Performance"
       }
 
       Rectangle {
         Layout.fillWidth: true
-        height: ScalerService.s(1)
+        Layout.preferredHeight: ScalerService.s(1)
         color: theme.primary.foreground
+        opacity: 0.2
       }
 
-      // Nội dung cài đặt cụ thể sẽ được thêm ở đây
-      Text {
-        text: "Cài đặt [tên mục] sẽ được hiển thị ở đây"
-        color: theme.primary.dim_foreground
-        font.pixelSize: ScalerService.s(14)
-        Layout.alignment: Qt.AlignCenter
-        Layout.fillHeight: true
+      PerfCom.PerformanceStatSection {
+        statName: "cpu"
+        title: lang?.performance_settings?.cpu || "CPU"
+        percent: Math.round(CpuSimpleService.cpuPercent)
+      }
+
+      Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: ScalerService.s(1)
+        color: theme.primary.foreground
+        opacity: 0.2
+      }
+
+      PerfCom.PerformanceStatSection {
+        statName: "ram"
+        title: lang?.performance_settings?.ram || "RAM"
+        percent: RamSimpleService.ramPercent
       }
     }
   }
